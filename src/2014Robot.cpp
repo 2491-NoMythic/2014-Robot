@@ -7,6 +7,7 @@ class TestRobot : public SimpleRobot
 	Jaguar motorLeft, motorRight, launcher;
 	Solenoid shiftUp, shiftDown, lifterUp, lifterDown;
 	Relay lifter;
+	Compressor *compressor;
 	DriverStationLCD *driverStationLCD;
 	DriverStation *driverStation;
 
@@ -17,6 +18,11 @@ public:
 		shiftUp(1), shiftDown(2), lifterUp(3), lifterDown(4),
 		lifter(2)
 	{
+		//Set up the compressor
+		compressor = new Compressor(1,1);
+		//Start the compressor!
+		compressor->Start();
+		
 		driverStationLCD = DriverStationLCD::GetInstance();
 		driverStation = DriverStation::GetInstance();
 	}
