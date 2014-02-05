@@ -1,6 +1,12 @@
 #include <WPILib.h>
 #include <math.h>
 
+//Define some environment variables to use later.  We should edit these when we know what they actually are.
+//In this case, they're potentiometer targets for the shooter arm.
+#define SHOOTER_FARSHOT 1
+#define SHOOTER_CLOSESHOT 0.6
+#define SHOOTER_BOTTOMOUT 0
+
 class TestRobot : public SimpleRobot
 {
 	Joystick joystickLeft, joystickRight;
