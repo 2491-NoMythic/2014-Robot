@@ -12,14 +12,13 @@ class TestRobot : public SimpleRobot
 	Joystick *joystickLeft, *joystickRight;
 	Talon *motorLeft, *motorRight, *launcher;
 	Solenoid *shiftUp, *shiftDown, *lifterUp, *lifterDown;
-	Relay *lifter, *compressor;
-	DigitalInput compressorDetector;
-	//Compressor *compressor;
+	Relay *lifter;
+	Compressor *compressor;
 	DriverStationLCD *driverStationLCD;
 	DriverStation *driverStation;
 
 public:
-	TestRobot(void) : compressorDetector(1)	{
+	TestRobot(void)	{
 		//Set up joysticks
 		joystickLeft = new Joystick(1);
 		joystickRight = new Joystick(2);
@@ -39,12 +38,9 @@ public:
 		lifter = new Relay(2);
 		
 		//Set up the compressor
-		//compressor = new Compressor(1,1);
+		compressor = new Compressor(1,1);
 		//Start the compressor!
-		//compressor->Start();
-		compressor = new Relay(1,Relay::kForwardOnly);
-		
-		//compressorDetector = new DigitalInput(1);
+		compressor->Start();
 		
 		driverStationLCD = DriverStationLCD::GetInstance();
 		driverStation = DriverStation::GetInstance();
@@ -53,7 +49,6 @@ public:
 		// No autonomous code, this is a test robot!
 	}
 	void OperatorControl(void) {
-		//compressor->Start();
 		while (IsOperatorControl()) {  //We only want this to run while in teleop mode!
 			// Make the robot drive!
 			if(fabs(joystickLeft->GetY()) > 0.05) {
@@ -70,22 +65,6 @@ public:
 				motorRight->Set(0.0);
 			}
 			
-			//Testing!
-			if (joystickLeft->GetRawButton(8)) {
-				compressor->Set(Relay::kOn);
-			}
-			else {
-				compressor->Set(Relay::kOff);
-			}
-			
-			if(compressorDetector.Get()) {
-				driverStationLCD->Printf(DriverStationLCD::kUser_Line4, 1, "Compressor ON ");
-			}
-			else {
-				driverStationLCD->Printf(DriverStationLCD::kUser_Line4, 1, "Compressor OFF");
-			}
-			
-			//Lifter Control
 			if(joystickRight->GetRawButton(3) && !(joystickRight->GetRawButton(2))) {
 				lifter->Set(Relay::kForward);
 				driverStationLCD->Printf(DriverStationLCD::kUser_Line1, 1, "Loading In! ");
