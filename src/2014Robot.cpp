@@ -65,6 +65,7 @@ public:
 				motorRight->Set(0.0);
 			}
 			
+			//Lifter control
 			if(joystickRight->GetRawButton(3) && !(joystickRight->GetRawButton(2))) {
 				lifter->Set(Relay::kForward);
 				driverStationLCD->Printf(DriverStationLCD::kUser_Line1, 1, "Loading In! ");
