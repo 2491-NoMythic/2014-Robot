@@ -10,7 +10,7 @@
 class TestRobot : public SimpleRobot
 {
 	Joystick *joystickLeft, *joystickRight;
-	Talon *motorLeft, *motorRight, *launcher;
+	Talon *motorLeft, *motorRight, *launcherOne, *launcherTwo;
 	Solenoid *shiftUp, *shiftDown, *lifterUp, *lifterDown;
 	Relay *lifter;
 	Compressor *compressor;
@@ -27,7 +27,8 @@ public:
 		//Set up motors
 		motorLeft = new Talon(2);
 		motorRight = new Talon(1);
-		launcher = new Talon(5);
+		launcherOne = new Talon(5);
+		launcherTwo = new Talon(6);
 		
 		//Set up solenoids
 		shiftUp = new Solenoid(2);
@@ -90,32 +91,41 @@ public:
 			//Launcher control
 			if(joystickLeft->GetRawButton(6) && !(joystickLeft->GetRawButton(7))) {
 				printf("Launching!\n");
-				launcher->Set(1.0);
+				launcherOne->Set(1.0);
+				launcherTwo->Set(1.0);
 			}
 			else if(joystickLeft->GetRawButton(7) && !(joystickLeft->GetRawButton(6))) {
 				printf("Bringing launcher back.\n");
-				launcher->Set(-0.3);
+				launcherOne->Set(-0.3);
+				launcherTwo->Set(-0.3);
 			}
 			else {
-				launcher->Set(0.0);
+				launcherOne->Set(0.0);
+				launcherTwo->Set(0.0);
 			}
 			
 			//Quicklaunches
 			if (joystickLeft->GetTrigger() && joystickLeft->GetRawButton(11)) {
-				launcher->Set(1.0);
+				launcherOne->Set(1.0);
+				launcherTwo->Set(1.0);
 				Wait(driverStation->GetAnalogIn(1));
-				launcher->Set(0.0);
+				launcherOne->Set(0.0);
+				launcherTwo->Set(0.0);
 				Wait(0.1);
-				launcher->Set(-0.3);
+				launcherOne->Set(-0.3);
+				launcherTwo->Set(-0.3);
 				Wait(driverStation->GetAnalogIn(1)*1.5);
 			}
 			
 			if (joystickLeft->GetTrigger() && joystickLeft->GetRawButton(10)) {
-				launcher->Set(1.0);
+				launcherOne->Set(1.0);
+				launcherTwo->Set(1.0);
 				Wait(driverStation->GetAnalogIn(2));
-				launcher->Set(0.0);
+				launcherOne->Set(0.0);
+				launcherTwo->Set(0.0);
 				Wait(0.1);
-				launcher->Set(-0.3);
+				launcherOne->Set(-0.3);
+				launcherTwo->Set(-0.3);
 				Wait(driverStation->GetAnalogIn(2)*1.5);
 			}
 			
