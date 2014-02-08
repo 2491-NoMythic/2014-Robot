@@ -54,6 +54,9 @@ public:
 		// No autonomous code, this is a test robot!
 	}
 	void OperatorControl(void) {
+		bool shifting = false;
+		int pendingShift = 0;
+		double shiftTimer = 0.0;
 		while (IsOperatorControl()) {  //We only want this to run while in teleop mode!
 			// Make the robot drive!
 			if(fabs(joystickLeft->GetY()) > 0.05) {
@@ -86,11 +89,11 @@ public:
 			
 			//Launcher control
 			if(joystickLeft->GetRawButton(6) && !(joystickLeft->GetRawButton(7))) {
-				printf("Launching!");
+				printf("Launching!\n");
 				launcher->Set(1.0);
 			}
 			else if(joystickLeft->GetRawButton(7) && !(joystickLeft->GetRawButton(6))) {
-				printf("Bringing launcher back.");
+				printf("Bringing launcher back.\n");
 				launcher->Set(-0.3);
 			}
 			else {
@@ -117,17 +120,40 @@ public:
 			}
 			
 			//Gearshift control
-			if (joystickRight->GetRawButton(11) && !(joystickRight->GetRawButton(10)) && (fabs(motorLeft->Get()) > 0.05) && (fabs(motorRight->Get()) > 0.05)) {
+			if (joystickRight->GetRawButton(11) && !(joystickRight->GetRawButton(10))) {
+				pendingShift = 1;
+				driverStationLCD->Printf(DriverStationLCD::kUser_Line2, 1, "Shift High Pending");
+			}
+			else if (joystickRight->GetRawButton(10) && !(joystickRight->GetRawButton(11))) {
+				pendingShift = -1;
+				driverStationLCD->Printf(DriverStationLCD::kUser_Line2, 1, "Shift Low Pending ");
+			}
+			
+			if (pendingShift == 1 && (fabs(motorLeft->Get()) > 0.1) && (fabs(motorRight->Get()) > 0.1)) {
+				driverStationLCD->Printf(DriverStationLCD::kUser_Line2, 1, "Shifting High     ");
 				shiftUp->Set(true);
 				shiftDown->Set(false);
+				if (!shifting) {
+					shifting = true;
+					shiftTimer = timer->Get() + 0.5;
+				}
 			}
-			else if (joystickRight->GetRawButton(10) && !(joystickRight->GetRawButton(11))  && (fabs(motorLeft->Get()) > 0.05) && (fabs(motorRight->Get()) > 0.05)) {
+			else if (pendingShift == -1 && (fabs(motorLeft->Get()) > 0.1) && (fabs(motorRight->Get()) > 0.1)) {
+				driverStationLCD->Printf(DriverStationLCD::kUser_Line2, 1, "Shifting Low      ");
 				shiftUp->Set(false);
 				shiftDown->Set(true);
+				if (!shifting) {
+					shifting = true;
+					shiftTimer = timer->Get() + 0.5;
+				}
 			}
 			else {
 				shiftUp->Set(false);
 				shiftDown->Set(false);
+				if (shifting) {
+					driverStationLCD->Printf(DriverStationLCD::kUser_Line2, 1, "                  ");
+					shifting = false;
+				}
 			}
 			
 			//Lifter position control
@@ -144,6 +170,11 @@ public:
 			else {
 				lifterUp->Set(false);
 				lifterDown->Set(false);
+			}
+			
+			//Timer expirations
+			if (shifting && timer->HasPeriodPassed(shiftTimer)) {
+				pendingShift = 0;
 			}
 			driverStationLCD->UpdateLCD();
 		}
