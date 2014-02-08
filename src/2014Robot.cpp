@@ -14,6 +14,7 @@ class TestRobot : public SimpleRobot
 	Solenoid *shiftUp, *shiftDown, *lifterUp, *lifterDown;
 	Relay *lifter;
 	Compressor *compressor;
+	Timer *timer;
 	DriverStationLCD *driverStationLCD;
 	DriverStation *driverStation;
 
@@ -29,8 +30,8 @@ public:
 		launcher = new Talon(5);
 		
 		//Set up solenoids
-		shiftUp = new Solenoid(1);
-		shiftDown = new Solenoid(2);
+		shiftUp = new Solenoid(2);
+		shiftDown = new Solenoid(1);
 		lifterUp = new Solenoid(3);
 		lifterDown = new Solenoid(4);
 		
@@ -41,6 +42,10 @@ public:
 		compressor = new Compressor(1,1);
 		//Start the compressor!
 		compressor->Start();
+		
+		timer = new Timer();
+		timer->Start();
+		timer->Reset();
 		
 		driverStationLCD = DriverStationLCD::GetInstance();
 		driverStation = DriverStation::GetInstance();
@@ -111,12 +116,12 @@ public:
 				Wait(driverStation->GetAnalogIn(2)*1.5);
 			}
 			
-			//Gearshift conrol
-			if (joystickRight->GetRawButton(11) && !(joystickRight->GetRawButton(10))) {
+			//Gearshift control
+			if (joystickRight->GetRawButton(11) && !(joystickRight->GetRawButton(10)) && (fabs(motorLeft->Get()) > 0.05) && (fabs(motorRight->Get()) > 0.05)) {
 				shiftUp->Set(true);
 				shiftDown->Set(false);
 			}
-			else if (joystickRight->GetRawButton(10) && !(joystickRight->GetRawButton(11))) {
+			else if (joystickRight->GetRawButton(10) && !(joystickRight->GetRawButton(11))  && (fabs(motorLeft->Get()) > 0.05) && (fabs(motorRight->Get()) > 0.05)) {
 				shiftUp->Set(false);
 				shiftDown->Set(true);
 			}
