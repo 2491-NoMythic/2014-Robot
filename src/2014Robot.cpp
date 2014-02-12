@@ -3,9 +3,6 @@
 
 //Define some environment variables to use later.  We should edit these when we know what they actually are.
 //In this case, they're potentiometer targets for the shooter arm.
-#define SHOOTER_FARSHOT 1
-#define SHOOTER_CLOSESHOT 0.6
-#define SHOOTER_BOTTOMOUT 0
 
 class TestRobot : public SimpleRobot
 {
@@ -14,6 +11,7 @@ class TestRobot : public SimpleRobot
 	Solenoid *shiftUp, *shiftDown, *lifterUp, *lifterDown;
 	Relay *lifter;
 	Compressor *compressor;
+	AnalogChannel *shooterPot;
 	Timer *timer;
 	DriverStationLCD *driverStationLCD;
 	DriverStation *driverStation;
@@ -44,6 +42,8 @@ public:
 		//Start the compressor!
 		compressor->Start();
 		
+		shooterPot = new AnalogChannel(1);
+		
 		timer = new Timer();
 		timer->Start();
 		timer->Reset();
@@ -52,12 +52,21 @@ public:
 		driverStation = DriverStation::GetInstance();
 	}
 	void Autonomous(void) {
-		// No autonomous code, this is a test robot!
+		motorRight->Set(0.7);
+		motorLeft->Set(0.7);
+		Wait(1.5);
+		motorRight->Set(0.0);
+		motorLeft->Set(0.0);
 	}
 	void OperatorControl(void) {
 		bool shifting = false;
 		int pendingShift = 0;
 		double shiftTimer = 0.0;
+		double lowFreqTimer = 0.0;
+		double shooterTimeout = 0.0;
+		float shooterFarShot = 0.0;
+		float shooterCloseShot = 0.0;
+		float shooterBottom = 0.0;
 		while (IsOperatorControl()) {  //We only want this to run while in teleop mode!
 			// Make the robot drive!
 			if(fabs(joystickLeft->GetY()) > 0.05) {
@@ -186,7 +195,16 @@ public:
 			if (shifting && timer->HasPeriodPassed(shiftTimer)) {
 				pendingShift = 0;
 			}
-			driverStationLCD->UpdateLCD();
+			driverStationLCD->Printf(DriverStationLCD::kUser_Line3, 1, "Shooter: %f", shooterPot->GetVoltage());
+			
+			//These things only run 10 times a second.  Good for network access.
+			if (timer->HasPeriodPassed(lowFreqTimer)) {
+				lowFreqTimer = lowFreqTimer + 0.1;
+				shooterFarShot = driverStation->GetAnalogIn(1);
+				shooterCloseShot = driverStation->GetAnalogIn(2);
+				shooterBottom = driverStation->GetAnalogIn(3);
+				driverStationLCD->UpdateLCD();
+			} 
 		}
 	}
 };
