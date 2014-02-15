@@ -23,6 +23,30 @@
  * Button 7: Lifter Out / Put Lifter Down
  * Button 10: Shift Low
  * Button 11: Shift High
+ * 
+ *
+ * Port Config:
+ * PWM Ports
+ * Port 1: Right Motor
+ * Port 2: Left Motor
+ * Port 5: Launcher Motor 1
+ * Port 6: Launcher Motor 2
+ *
+ * Relay Ports
+ * Port 1: Compressor
+ * Port 2: Loader Motor
+ *
+ * Digital Sensor Ports
+ * Port 1: Pressure Sensor for Compressor
+ *
+ * Analog Sensor Ports
+ * Port 1: Shooter Potentiometer
+ *
+ * Solenoid Breakout Ports
+ * Port 1: Shift Down
+ * Port 2: Shift Up
+ * Port 3: Pull Lifter In / Up
+ * Port 3: Push Lifter Out / Down
  */
 
 
