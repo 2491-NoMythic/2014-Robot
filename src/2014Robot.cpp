@@ -45,8 +45,8 @@
  * Solenoid Breakout Ports
  * Port 1: Shift Down
  * Port 2: Shift Up
- * Port 3: Pull Lifter In / Up
- * Port 3: Push Lifter Out / Down
+ * Port 3: Pull Lifter Out / Down
+ * Port 3: Push Lifter In / Up
  */
 
 
@@ -80,8 +80,8 @@ public:
 		//Set up solenoids
 		shiftUp = new Solenoid(2);
 		shiftDown = new Solenoid(1);
-		lifterUp = new Solenoid(3);
-		lifterDown = new Solenoid(4);
+		lifterUp = new Solenoid(4);
+		lifterDown = new Solenoid(3);
 		
 		//Set up the lifter relay
 		lifter = new Relay(2);
