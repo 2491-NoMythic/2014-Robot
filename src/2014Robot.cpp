@@ -101,10 +101,14 @@ public:
 		driverStation = DriverStation::GetInstance();
 	}
 	void Autonomous(void) {
+		//Make sure we're in high gear
+		shiftUp->Set(true);
+		shiftDown->Set(false);
 		//Drive forward for 1.5 seconds...
 		motorRight->Set(-0.7);
 		motorLeft->Set(0.7);
 		Wait(1.5);
+		shiftUp->Set(false);
 		motorRight->Set(0.0);
 		motorLeft->Set(0.0);
 		//Wait a bit...
