@@ -76,11 +76,27 @@ public:
 		driverStation = DriverStation::GetInstance();
 	}
 	void Autonomous(void) {
+		//Drive forward for 1.5 seconds...
 		motorRight->Set(-0.7);
 		motorLeft->Set(0.7);
 		Wait(1.5);
 		motorRight->Set(0.0);
 		motorLeft->Set(0.0);
+		//Wait a bit...
+		Wait(1.0);
+		//Shoot!  The shoot time is based on DS analog input 3.
+		launcherOne->Set(1.0);
+		launcherTwo->Set(1.0);
+		Wait(driverStation->GetAnalogIn(3));
+		launcherOne->Set(0.0);
+		launcherTwo->Set(0.0);
+		Wait(0.1);
+		launcherOne->Set(-0.3);
+		launcherTwo->Set(-0.3);
+		Wait(driverStation->GetAnalogIn(3)*2);
+		launcherOne->Set(0.0);
+		launcherTwo->Set(0.0);
+		
 	}
 	void OperatorControl(void) {
 		bool shifting = false; //Variable for shifting
