@@ -6,6 +6,7 @@
  * DriverStation
  * Analog Input 1: Quicklaunch 1 Time
  * Analog Input 2: Quicklaunch 2 Time
+ * Analog Input 3: Autonomous Shoot Time
  * 
  * Left Joystick
  * Y Axis: Drive Left Motors
