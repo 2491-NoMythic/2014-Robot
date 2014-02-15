@@ -1,6 +1,30 @@
 #include <WPILib.h>
 #include <math.h>
 
+/*
+ * Button Config:
+ * DriverStation
+ * Analog Input 1: Quicklaunch 1 Time
+ * Analog Input 2: Quicklaunch 2 Time
+ * 
+ * Left Joystick
+ * Y Axis: Drive Left Motors
+ * Button 6: Launch
+ * Button 7: Launcher Retract
+ * Trigger + 12: Quicklaunch 2
+ * Trigger + 12: Quicklaunch 1
+ * 
+ * Right Joystick
+ * Y Axis: Drive Right Motors
+ * Button 2: Load In
+ * Button 3: Load Out
+ * Button 6: Lifter Retract / Pull Lifter Up
+ * Button 7: Lifter Out / Put Lifter Down
+ * Button 10: Shift Low
+ * Button 11: Shift High
+ */
+
+
 //Define some environment variables to use later.  We should edit these when we know what they actually are.
 //In this case, they're potentiometer targets for the shooter arm.
 
@@ -84,11 +108,11 @@ public:
 			}
 			
 			//Lifter control
-			if(joystickRight->GetRawButton(3) && !(joystickRight->GetRawButton(2))) {
+			if(joystickRight->GetRawButton(2) && !(joystickRight->GetRawButton(3))) {
 				lifter->Set(Relay::kForward);
 				driverStationLCD->Printf(DriverStationLCD::kUser_Line1, 1, "Loading In! ");
 			}
-			else if(joystickRight->GetRawButton(2) && !(joystickRight->GetRawButton(3))) {
+			else if(joystickRight->GetRawButton(3) && !(joystickRight->GetRawButton(2))) {
 				lifter->Set(Relay::kReverse);
 				driverStationLCD->Printf(DriverStationLCD::kUser_Line1, 1, "Loading Out!");
 			}
@@ -123,7 +147,9 @@ public:
 				Wait(0.1);
 				launcherOne->Set(-0.3);
 				launcherTwo->Set(-0.3);
-				Wait(driverStation->GetAnalogIn(1)*1.5);
+				Wait(driverStation->GetAnalogIn(1)* 2);
+				launcherOne->Set(0.0);
+				launcherTwo->Set(0.0);
 			}
 			
 			if (joystickLeft->GetTrigger() && joystickLeft->GetRawButton(10)) {
@@ -135,7 +161,9 @@ public:
 				Wait(0.1);
 				launcherOne->Set(-0.3);
 				launcherTwo->Set(-0.3);
-				Wait(driverStation->GetAnalogIn(2)*1.5);
+				Wait(driverStation->GetAnalogIn(2)*2);
+				launcherOne->Set(0.0);
+				launcherTwo->Set(0.0);
 			}
 			
 			//Gearshift control
