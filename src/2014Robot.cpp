@@ -7,6 +7,7 @@
  * Analog Input 1: Quicklaunch 1 Time
  * Analog Input 2: Quicklaunch 2 Time
  * Analog Input 3: Autonomous Shoot Time
+ * Analog Input 4: Autonomous Drive Time
  * 
  * Left Joystick
  * Y Axis: Drive Left Motors
@@ -27,8 +28,8 @@
  *
  * Port Config:
  * PWM Ports
- * Port 1: Right Motor
- * Port 2: Left Motor
+ * Port 1: Left Motor
+ * Port 2: Right Motor
  * Port 5: Launcher Motor 1
  * Port 6: Launcher Motor 2
  *
@@ -72,8 +73,8 @@ public:
 		joystickRight = new Joystick(2);
 		
 		//Set up motors
-		motorLeft = new Talon(2);
-		motorRight = new Talon(1);
+		motorLeft = new Talon(1);
+		motorRight = new Talon(2);
 		launcherOne = new Talon(5);
 		launcherTwo = new Talon(6);
 		
@@ -101,6 +102,9 @@ public:
 		driverStation = DriverStation::GetInstance();
 	}
 	void Autonomous(void) {
+		
+		//Stop the compressor
+		compressor->Stop();
 		//Make sure the lifter is down
 		lifterDown->Set(true);
 		lifterUp->Set(false);
@@ -108,9 +112,9 @@ public:
 		shiftUp->Set(true);
 		shiftDown->Set(false);
 		//Drive forward for 1.5 seconds...
-		motorRight->Set(0.7);
-		motorLeft->Set(-0.7);
-		Wait(1.5);
+		motorRight->Set(-0.7);
+		motorLeft->Set(0.7);
+		Wait(driverStation->GetAnalogIn(4));
 		lifterDown->Set(false);
 		shiftUp->Set(false);
 		motorRight->Set(0.0);
@@ -129,6 +133,8 @@ public:
 		Wait(driverStation->GetAnalogIn(3)*2);
 		launcherOne->Set(0.0);
 		launcherTwo->Set(0.0);
+		//Restart the compressor
+		compressor->Start();
 		
 	}
 	void OperatorControl(void) {
@@ -136,7 +142,7 @@ public:
 		int pendingShift = 0; //Stores what if any shifts are pending.  1.0 = shift high, 0.0 = none, -1.0 = shift low
 		double shiftTimer = 0.0; //The timeout will set the pending shift to 0.0 if the timer passes this time.
 		double lowFreqTimer = 0.0; //Stores the next time that the low frequency code runs
-		double shooterTimeout = 0.0; //Backup timeout for shooter in case the sensor malfunctions
+		//double shooterTimeout = 0.0; //Backup timeout for shooter in case the sensor malfunctions
 		float shooterFarShot = 0.0; //Potentiometer reading at top of a far shot
 		float shooterCloseShot = 0.0; //Potentiometer reading at top of a close shot
 		float shooterBottom = 0.0; //Potentiometer reading when shooter arm is at the bottom spot
@@ -189,10 +195,12 @@ public:
 			//Quicklaunches
 			if (joystickLeft->GetTrigger() && joystickLeft->GetRawButton(11)) { //Only fire if both trigger and button are held
 				//Enable launcher motor for time specified in DriverStation analog IO
+				compressor->Stop();
 				launcherOne->Set(1.0);
 				launcherTwo->Set(1.0);
 				Wait(driverStation->GetAnalogIn(1));
 				//Disable motors for 0.1 seconds to slow down
+				compressor->Start();
 				launcherOne->Set(0.0);
 				launcherTwo->Set(0.0);
 				Wait(0.1);
@@ -206,9 +214,11 @@ public:
 			}
 			//Same thing as before, but with different buttons and different IO ports.
 			if (joystickLeft->GetTrigger() && joystickLeft->GetRawButton(10)) {
+				compressor->Stop();
 				launcherOne->Set(1.0);
 				launcherTwo->Set(1.0);
 				Wait(driverStation->GetAnalogIn(2));
+				compressor->Start();
 				launcherOne->Set(0.0);
 				launcherTwo->Set(0.0);
 				Wait(0.1);
@@ -277,6 +287,13 @@ public:
 			//Timer expirations
 			if (shifting && timer->HasPeriodPassed(shiftTimer)) { //If the timer passes the time written to the shiftTimer variable, set the pending shift to none.  This will stop the shift the next run of the code
 				pendingShift = 0;
+			}
+			//Stop the compressor if we're launching.
+			if (launcherOne->Get() > 0.0) {
+				compressor->Stop();
+			}
+			else {
+				compressor->Start();
 			}
 			driverStationLCD->Printf(DriverStationLCD::kUser_Line3, 1, "Shooter: %f", shooterPot->GetVoltage()); //Print the shooter potentiometer voltage to line 3 of the DS LCD
 			
