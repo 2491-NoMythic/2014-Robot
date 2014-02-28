@@ -122,17 +122,7 @@ public:
 		//Wait a bit...
 		Wait(1.0);
 		//Shoot!  The shoot time is based on DS analog input 3.
-		launcherOne->Set(1.0);
-		launcherTwo->Set(1.0);
-		Wait(driverStation->GetAnalogIn(3));
-		launcherOne->Set(0.0);
-		launcherTwo->Set(0.0);
-		Wait(0.1);
-		launcherOne->Set(-0.3);
-		launcherTwo->Set(-0.3);
-		Wait(driverStation->GetAnalogIn(3)*2);
-		launcherOne->Set(0.0);
-		launcherTwo->Set(0.0);
+		TimedShot(driverStation->GetAnalogIn(3));
 		//Restart the compressor
 		compressor->Start();
 		
@@ -193,40 +183,14 @@ public:
 			}
 			
 			//Quicklaunches
-			if (joystickLeft->GetTrigger() && joystickLeft->GetRawButton(11)) { //Only fire if both trigger and button are held
-				//Enable launcher motor for time specified in DriverStation analog IO
-				compressor->Stop();
-				launcherOne->Set(1.0);
-				launcherTwo->Set(1.0);
-				Wait(driverStation->GetAnalogIn(1));
-				//Disable motors for 0.1 seconds to slow down
-				compressor->Start();
-				launcherOne->Set(0.0);
-				launcherTwo->Set(0.0);
-				Wait(0.1);
-				//Set motors backwards for two times the time specified in DS analog IO
-				launcherOne->Set(-0.3);
-				launcherTwo->Set(-0.3);
-				Wait(driverStation->GetAnalogIn(1)* 2);
-				//Disable motors
-				launcherOne->Set(0.0);
-				launcherTwo->Set(0.0);
+			if (joystickLeft->GetTrigger() && joystickLeft->GetRawButton(11)) { //If you hold down the trigger and push 11...
+				//Shoot based on the time set on analog input 1 of the DS
+				TimedShot(driverStation->GetAnalogIn(1));
 			}
 			//Same thing as before, but with different buttons and different IO ports.
-			if (joystickLeft->GetTrigger() && joystickLeft->GetRawButton(10)) {
-				compressor->Stop();
-				launcherOne->Set(1.0);
-				launcherTwo->Set(1.0);
-				Wait(driverStation->GetAnalogIn(2));
-				compressor->Start();
-				launcherOne->Set(0.0);
-				launcherTwo->Set(0.0);
-				Wait(0.1);
-				launcherOne->Set(-0.3);
-				launcherTwo->Set(-0.3);
-				Wait(driverStation->GetAnalogIn(2)*2);
-				launcherOne->Set(0.0);
-				launcherTwo->Set(0.0);
+			if (joystickLeft->GetTrigger() && joystickLeft->GetRawButton(10)) { //If you hold down the trigger and push 10..
+				//Shoot based on the time set on analog input 2 of the DS
+				TimedShot(driverStation->GetAnalogIn(2));
 			}
 			
 			//Gearshift control
@@ -306,6 +270,29 @@ public:
 				driverStationLCD->UpdateLCD(); //Update the DS LCD with new information.
 			} 
 		}
+	}
+	//Function to shoot based on a set time
+	void TimedShot(float time) {
+		//Stop the compressor...
+		compressor->Stop();
+		//Launch!
+		launcherOne->Set(1.0);
+		launcherTwo->Set(1.0);
+		//Wait for the given time
+		Wait(time);
+		//Restart the compressor
+		compressor->Start();
+		//Stop the launcher
+		launcherOne->Set(0.0);
+		launcherTwo->Set(0.0);
+		//Wait a bit to let the launcher stop
+		Wait(0.1);
+		//Bring back the launcher
+		launcherOne->Set(-0.3);
+		launcherTwo->Set(-0.3);
+		Wait(time*1.5);
+		launcherOne->Set(0.0);
+		launcherTwo->Set(0.0);
 	}
 };
 START_ROBOT_CLASS(TestRobot);
