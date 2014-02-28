@@ -54,7 +54,7 @@
 //Define some environment variables to use later.  We should edit these when we know what they actually are.
 //In this case, they're potentiometer targets for the shooter arm.
 
-class TestRobot : public SimpleRobot
+class MainRobot : public SimpleRobot
 {
 	Joystick *joystickLeft, *joystickRight;
 	Talon *motorLeft, *motorRight, *launcherOne, *launcherTwo;
@@ -67,7 +67,7 @@ class TestRobot : public SimpleRobot
 	DriverStation *driverStation;
 
 public:
-	TestRobot(void)	{
+	MainRobot(void)	{
 		//Set up joysticks
 		joystickLeft = new Joystick(1);
 		joystickRight = new Joystick(2);
@@ -295,4 +295,4 @@ public:
 		launcherTwo->Set(0.0);
 	}
 };
-START_ROBOT_CLASS(TestRobot);
+START_ROBOT_CLASS(MainRobot);
