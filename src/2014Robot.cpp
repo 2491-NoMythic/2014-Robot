@@ -1,6 +1,8 @@
 #include <WPILib.h>
 #include <math.h>
 
+#define SONAR_TO_INCHES 0.009766
+
 /*
  * Button Config:
  * DriverStation
@@ -61,7 +63,7 @@ class MainRobot : public SimpleRobot
 	Solenoid *shiftUp, *shiftDown, *lifterUp, *lifterDown;
 	Relay *lifter;
 	Compressor *compressor;
-	AnalogChannel *shooterPot;
+	AnalogChannel *shooterPot, *sonar;
 	Timer *timer;
 	DriverStationLCD *driverStationLCD;
 	DriverStation *driverStation;
@@ -92,7 +94,8 @@ public:
 		//Start the compressor!
 		compressor->Start();
 		
-		shooterPot = new AnalogChannel(1);
+		shooterPot = new AnalogChannel(2);
+		sonar = new AnalogChannel(1);
 		
 		timer = new Timer();
 		timer->Start();
@@ -126,12 +129,14 @@ public:
 		//Restart the compressor
 		compressor->Start();
 		
+		
 	}
 	void OperatorControl(void) {
+		int count = 0;
 		bool shifting = false; //Variable for shifting
 		int pendingShift = 0; //Stores what if any shifts are pending.  1.0 = shift high, 0.0 = none, -1.0 = shift low
 		double shiftTimer = 0.0; //The timeout will set the pending shift to 0.0 if the timer passes this time.
-		double lowFreqTimer = 0.0; //Stores the next time that the low frequency code runs
+		//double lowFreqTimer = 0.0; //Wasn't working... Stores the next time that the low frequency code runs
 		//double shooterTimeout = 0.0; //Backup timeout for shooter in case the sensor malfunctions
 		float shooterFarShot = 0.0; //Potentiometer reading at top of a far shot
 		float shooterCloseShot = 0.0; //Potentiometer reading at top of a close shot
@@ -261,14 +266,15 @@ public:
 			}
 			driverStationLCD->Printf(DriverStationLCD::kUser_Line3, 1, "Shooter: %f", shooterPot->GetVoltage()); //Print the shooter potentiometer voltage to line 3 of the DS LCD
 			
-			//These things only run 10 times a second.  Good for network access.
-			if (timer->HasPeriodPassed(lowFreqTimer)) {
-				lowFreqTimer = lowFreqTimer + 0.1; //Increment the timer for this stuff.
+			//These things only run once per 100 runs.  Good for network access.
+			if (count % 100 == 0) {
 				shooterFarShot = driverStation->GetAnalogIn(1); //Read analog inputs and set variables to them.
 				shooterCloseShot = driverStation->GetAnalogIn(2);
 				shooterBottom = driverStation->GetAnalogIn(3);
 				driverStationLCD->UpdateLCD(); //Update the DS LCD with new information.
 			} 
+			//increment the count variable
+			++count;
 		}
 	}
 	//Function to shoot based on a set time
