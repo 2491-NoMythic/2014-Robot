@@ -264,7 +264,10 @@ public:
 			else {
 				compressor->Start();
 			}
-			driverStationLCD->Printf(DriverStationLCD::kUser_Line3, 1, "Shooter: %f", shooterPot->GetVoltage()); //Print the shooter potentiometer voltage to line 3 of the DS LCD
+			//Print the shooter potentiometer voltage to line 3 of the DS LCD
+			driverStationLCD->Printf(DriverStationLCD::kUser_Line3, 1, "Shooter: %f", shooterPot->GetVoltage());
+			//Print the sonar distance to line 4
+			driverStationLCD->Printf(DriverStationLCD::kUser_Line4, 1, " Sonar: %f", sonar->GetVoltage() * SONAR_TO_INCHES);
 			
 			//These things only run once per 100 runs.  Good for network access.
 			if (count % 100 == 0) {
