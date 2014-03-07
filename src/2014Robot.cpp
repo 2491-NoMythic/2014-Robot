@@ -1,7 +1,8 @@
 #include <WPILib.h>
 #include <math.h>
 
-#define SONAR_TO_INCHES 0.009766
+#define SONAR_TO_INCHES 102.4
+#define SONAR_TO_FEET 8.533
 
 /*
  * Button Config:
@@ -10,20 +11,23 @@
  * Analog Input 2: Quicklaunch 2 Time
  * Analog Input 3: Autonomous Shoot Time
  * Analog Input 4: Autonomous Drive Time
+ * Digital Input 1: Enable Shooting in Autonomous
+ * Digital Input 2: Use Sonar in Autonomous
+ * Digital Input 8: Talon Calibration Mode
  * 
  * Left Joystick
  * Y Axis: Drive Left Motors
  * Button 6: Launch
  * Button 7: Launcher Retract
- * Trigger + 12: Quicklaunch 2
- * Trigger + 12: Quicklaunch 1
+ * Trigger + 4: Quicklaunch 1
+ * Trigger + 5: Quicklaunch 2
  * 
  * Right Joystick
  * Y Axis: Drive Right Motors
  * Button 2: Load In
  * Button 3: Load Out
- * Button 6: Lifter Retract / Pull Lifter Up
- * Button 7: Lifter Out / Put Lifter Down
+ * Button 5: Lifter Retract / Pull Lifter Up
+ * Button 4: Lifter Out / Put Lifter Down
  * Button 10: Shift Low
  * Button 11: Shift High
  * 
@@ -49,7 +53,7 @@
  * Port 1: Shift Down
  * Port 2: Shift Up
  * Port 3: Pull Lifter Out / Down
- * Port 3: Push Lifter In / Up
+ * Port 4: Push Lifter In / Up
  */
 
 
@@ -79,7 +83,7 @@ public:
 		motorRight = new Talon(2);
 		launcherOne = new Talon(5);
 		launcherTwo = new Talon(6);
-		
+	
 		//Set up solenoids
 		shiftUp = new Solenoid(2);
 		shiftDown = new Solenoid(1);
@@ -105,7 +109,6 @@ public:
 		driverStation = DriverStation::GetInstance();
 	}
 	void Autonomous(void) {
-		
 		//Stop the compressor
 		compressor->Stop();
 		//Make sure the lifter is down
@@ -117,18 +120,28 @@ public:
 		//Drive forward for 1.5 seconds...
 		motorRight->Set(-0.7);
 		motorLeft->Set(0.7);
-		Wait(driverStation->GetAnalogIn(4));
+		//If driverstation switch is on, wait until the sonar is at 9.5 feet.
+		if(driverStation->GetDigitalIn(2)){
+			while(IsAutonomous() && sonar->GetVoltage() * SONAR_TO_FEET > 9.5) {
+				Wait(0.02);
+			}
+		}
+		else { //Otherwise, wait for 1.5 seconds.
+			Wait(1.1);
+		}
 		lifterDown->Set(false);
 		shiftUp->Set(false);
 		motorRight->Set(0.0);
 		motorLeft->Set(0.0);
-		//Wait a bit...
-		Wait(1.0);
-		//Shoot!  The shoot time is based on DS analog input 3.
-		TimedShot(driverStation->GetAnalogIn(3));
-		//Restart the compressor
-		compressor->Start();
-		
+		//If autonomous shooting is enabled...
+		if(driverStation->GetDigitalIn(1)) {
+			//Wait a bit...
+			Wait(1.0);
+			//Shoot!  The shoot time is based on DS analog input 3.
+			TimedShot(driverStation->GetAnalogIn(3));
+		}
+			//Restart the compressor
+			compressor->Start();
 		
 	}
 	void OperatorControl(void) {
@@ -179,8 +192,14 @@ public:
 			}
 			else if(joystickLeft->GetRawButton(7) && !(joystickLeft->GetRawButton(6))) {
 				printf("Bringing launcher back.\n"); //Print out the fact that it's happening to the netconsole.
-				launcherOne->Set(-0.3);
-				launcherTwo->Set(-0.3);
+				if(driverStation->GetDigitalIn(8)) {
+					launcherOne->Set(-1.0);
+					launcherTwo->Set(-1.0);
+				}
+				else {
+					launcherOne->Set(-0.2);
+					launcherTwo->Set(-0.2);
+				}
 			}
 			else {
 				launcherOne->Set(0.0);
@@ -188,12 +207,12 @@ public:
 			}
 			
 			//Quicklaunches
-			if (joystickLeft->GetTrigger() && joystickLeft->GetRawButton(11)) { //If you hold down the trigger and push 11...
+			if (joystickLeft->GetTrigger() && joystickLeft->GetRawButton(4)) { //If you hold down the trigger and push 11...
 				//Shoot based on the time set on analog input 1 of the DS
 				TimedShot(driverStation->GetAnalogIn(1));
 			}
 			//Same thing as before, but with different buttons and different IO ports.
-			if (joystickLeft->GetTrigger() && joystickLeft->GetRawButton(10)) { //If you hold down the trigger and push 10..
+			if (joystickLeft->GetTrigger() && joystickLeft->GetRawButton(5)) { //If you hold down the trigger and push 10..
 				//Shoot based on the time set on analog input 2 of the DS
 				TimedShot(driverStation->GetAnalogIn(2));
 			}
@@ -238,12 +257,12 @@ public:
 			}
 			
 			//Lifter position control
-			if (joystickRight->GetRawButton(6) && !(joystickRight->GetRawButton(7))) {
+			if (joystickRight->GetRawButton(5) && !(joystickRight->GetRawButton(4))) {
 				printf("Lifter Up!");
 				lifterUp->Set(true);
 				lifterDown->Set(false);
 			}
-			else if (joystickRight->GetRawButton(7) && !(joystickRight->GetRawButton(6))) {
+			else if (joystickRight->GetRawButton(4) && !(joystickRight->GetRawButton(5))) {
 				printf("Lifter Down!");
 				lifterUp->Set(false);
 				lifterDown->Set(true);
@@ -266,11 +285,13 @@ public:
 			}
 			//Print the shooter potentiometer voltage to line 3 of the DS LCD
 			driverStationLCD->Printf(DriverStationLCD::kUser_Line3, 1, "Shooter: %f", shooterPot->GetVoltage());
-			//Print the sonar distance to line 4
-			driverStationLCD->Printf(DriverStationLCD::kUser_Line4, 1, " Sonar: %f", sonar->GetVoltage() * SONAR_TO_INCHES);
+			//Print the sonar distance in inches to line 4
+			driverStationLCD->Printf(DriverStationLCD::kUser_Line4, 1, "Sonar: %f in    ", sonar->GetVoltage() * SONAR_TO_INCHES);
+			//Print the sonar distance in feet to line 5
+			driverStationLCD->Printf(DriverStationLCD::kUser_Line5, 1, "Sonar: %f ft    ", sonar->GetVoltage() * SONAR_TO_FEET);
 			
 			//These things only run once per 100 runs.  Good for network access.
-			if (count % 100 == 0) {
+			if (count % 1000 == 0) {
 				shooterFarShot = driverStation->GetAnalogIn(1); //Read analog inputs and set variables to them.
 				shooterCloseShot = driverStation->GetAnalogIn(2);
 				shooterBottom = driverStation->GetAnalogIn(3);
@@ -297,8 +318,8 @@ public:
 		//Wait a bit to let the launcher stop
 		Wait(0.1);
 		//Bring back the launcher
-		launcherOne->Set(-0.3);
-		launcherTwo->Set(-0.3);
+		launcherOne->Set(-0.2);
+		launcherTwo->Set(-0.2);
 		Wait(time*1.5);
 		launcherOne->Set(0.0);
 		launcherTwo->Set(0.0);
