@@ -3,6 +3,7 @@
 
 #define SONAR_TO_INCHES 102.4
 #define SONAR_TO_FEET 8.533
+#define DRIVE_ENCODER_TO_FEET 0.00434782608695652173913043478261
 
 /*
  * Button Config:
@@ -17,10 +18,12 @@
  * 
  * Left Joystick
  * Y Axis: Drive Left Motors
- * Button 6: Launch
- * Button 7: Launcher Retract
+ * Button 3: Launch
+ * Button 2: Launcher Retract
  * Trigger + 4: Quicklaunch 1
  * Trigger + 5: Quicklaunch 2
+ * Button 6: Shift High
+ * Button 7: Shift Low
  * 
  * Right Joystick
  * Y Axis: Drive Right Motors
@@ -28,8 +31,7 @@
  * Button 3: Load Out
  * Button 5: Lifter Retract / Pull Lifter Up
  * Button 4: Lifter Out / Put Lifter Down
- * Button 10: Shift Low
- * Button 11: Shift High
+ * Button 9: Drive encoder distance reset
  * 
  *
  * Port Config:
@@ -68,6 +70,7 @@ class MainRobot : public SimpleRobot
 	Relay *lifter;
 	Compressor *compressor;
 	AnalogChannel *shooterPot, *sonar;
+	Encoder *driveEncoder;
 	Timer *timer;
 	DriverStationLCD *driverStationLCD;
 	DriverStation *driverStation;
@@ -101,6 +104,10 @@ public:
 		shooterPot = new AnalogChannel(2);
 		sonar = new AnalogChannel(1);
 		
+		driveEncoder = new Encoder(10,11, true, Encoder::k1X);
+		driveEncoder->SetDistancePerPulse(DRIVE_ENCODER_TO_FEET);
+		driveEncoder->Start();
+		
 		timer = new Timer();
 		timer->Start();
 		timer->Reset();
@@ -109,6 +116,7 @@ public:
 		driverStation = DriverStation::GetInstance();
 	}
 	void Autonomous(void) {
+		driveEncoder->Reset();
 		//Stop the compressor
 		compressor->Stop();
 		//Make sure the lifter is down
@@ -126,8 +134,8 @@ public:
 				Wait(0.02);
 			}
 		}
-		else { //Otherwise, wait for 1.5 seconds.
-			Wait(1.1);
+		else { //Otherwise, wait for 1.0 seconds.
+			Wait(1.3);
 		}
 		lifterDown->Set(false);
 		shiftUp->Set(false);
@@ -136,7 +144,7 @@ public:
 		//If autonomous shooting is enabled...
 		if(driverStation->GetDigitalIn(1)) {
 			//Wait a bit...
-			Wait(1.0);
+			Wait(2.0);
 			//Shoot!  The shoot time is based on DS analog input 3.
 			TimedShot(driverStation->GetAnalogIn(3));
 		}
@@ -145,6 +153,7 @@ public:
 		
 	}
 	void OperatorControl(void) {
+		driveEncoder->Reset();
 		int count = 0;
 		bool shifting = false; //Variable for shifting
 		int pendingShift = 0; //Stores what if any shifts are pending.  1.0 = shift high, 0.0 = none, -1.0 = shift low
@@ -185,12 +194,12 @@ public:
 			}
 			
 			//Launcher control
-			if(joystickLeft->GetRawButton(6) && !(joystickLeft->GetRawButton(7))) { //If you're pushing 6 and not 7 on the left joystick then launch the launcher!
+			if(joystickLeft->GetRawButton(3) && !(joystickLeft->GetRawButton(2))) { //If you're pushing 6 and not 7 on the left joystick then launch the launcher!
 				printf("Launching!\n"); //Print out the fact that it's happening to the netconsole.
 				launcherOne->Set(1.0);
 				launcherTwo->Set(1.0);
 			}
-			else if(joystickLeft->GetRawButton(7) && !(joystickLeft->GetRawButton(6))) {
+			else if(joystickLeft->GetRawButton(2) && !(joystickLeft->GetRawButton(3))) {
 				printf("Bringing launcher back.\n"); //Print out the fact that it's happening to the netconsole.
 				if(driverStation->GetDigitalIn(8)) {
 					launcherOne->Set(-1.0);
@@ -219,11 +228,11 @@ public:
 			
 			//Gearshift control
 			//If you push the buttons, the code will put it in the pending shift variable and wait until the robot is moving to shift.
-			if (joystickRight->GetRawButton(11) && !(joystickRight->GetRawButton(10))) {
+			if (joystickLeft->GetRawButton(6) && !(joystickLeft->GetRawButton(7))) {
 				pendingShift = 1;
 				driverStationLCD->Printf(DriverStationLCD::kUser_Line2, 1, "Shift High Pending"); //Print out pending shifts!
 			}
-			else if (joystickRight->GetRawButton(10) && !(joystickRight->GetRawButton(11))) {
+			else if (joystickLeft->GetRawButton(7) && !(joystickLeft->GetRawButton(6))) {
 				pendingShift = -1;
 				driverStationLCD->Printf(DriverStationLCD::kUser_Line2, 1, "Shift Low Pending ");
 			}
@@ -272,6 +281,11 @@ public:
 				lifterDown->Set(false);
 			}
 			
+			//Encoder Reset Button
+			if (joystickRight->GetRawButton(9)) {
+				driveEncoder->Reset();
+			}
+			
 			//Timer expirations
 			if (shifting && timer->HasPeriodPassed(shiftTimer)) { //If the timer passes the time written to the shiftTimer variable, set the pending shift to none.  This will stop the shift the next run of the code
 				pendingShift = 0;
@@ -285,13 +299,14 @@ public:
 			}
 			//Print the shooter potentiometer voltage to line 3 of the DS LCD
 			driverStationLCD->Printf(DriverStationLCD::kUser_Line3, 1, "Shooter: %f", shooterPot->GetVoltage());
-			//Print the sonar distance in inches to line 4
-			driverStationLCD->Printf(DriverStationLCD::kUser_Line4, 1, "Sonar: %f in    ", sonar->GetVoltage() * SONAR_TO_INCHES);
-			//Print the sonar distance in feet to line 5
-			driverStationLCD->Printf(DriverStationLCD::kUser_Line5, 1, "Sonar: %f ft    ", sonar->GetVoltage() * SONAR_TO_FEET);
-			
+			//Print the sonar distance in feet to line 4
+			driverStationLCD->Printf(DriverStationLCD::kUser_Line4, 1, "Sonar: %f ft    ", sonar->GetVoltage() * SONAR_TO_FEET);
+			//Print the drive speed to line 5
+			driverStationLCD->Printf(DriverStationLCD::kUser_Line5, 1, "Speed: %f f/s    ", driveEncoder->GetRate());
+			//Print the drive distance to line 6
+			driverStationLCD->Printf(DriverStationLCD::kUser_Line6, 1, "Distance: %f ft    ", driveEncoder->GetDistance());
 			//These things only run once per 100 runs.  Good for network access.
-			if (count % 1000 == 0) {
+			if (count % 25 == 0) {
 				shooterFarShot = driverStation->GetAnalogIn(1); //Read analog inputs and set variables to them.
 				shooterCloseShot = driverStation->GetAnalogIn(2);
 				shooterBottom = driverStation->GetAnalogIn(3);
@@ -299,6 +314,7 @@ public:
 			} 
 			//increment the count variable
 			++count;
+			Wait(0.01);
 		}
 	}
 	//Function to shoot based on a set time
