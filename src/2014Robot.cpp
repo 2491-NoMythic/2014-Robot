@@ -14,6 +14,7 @@
  * Analog Input 4: Autonomous Drive Time
  * Digital Input 1: Enable Shooting in Autonomous
  * Digital Input 2: Use Sonar in Autonomous
+ * Digital Input 3: Enable Automatic Transmission
  * Digital Input 8: Talon Calibration Mode
  * 
  * Left Joystick
@@ -157,12 +158,15 @@ public:
 		int count = 0;
 		bool shifting = false; //Variable for shifting
 		int pendingShift = 0; //Stores what if any shifts are pending.  1.0 = shift high, 0.0 = none, -1.0 = shift low
+		int currentShift = 0; //Stores what shift we are currently on.  Same as above.
 		double shiftTimer = 0.0; //The timeout will set the pending shift to 0.0 if the timer passes this time.
 		//double lowFreqTimer = 0.0; //Wasn't working... Stores the next time that the low frequency code runs
 		//double shooterTimeout = 0.0; //Backup timeout for shooter in case the sensor malfunctions
 		float shooterFarShot = 0.0; //Potentiometer reading at top of a far shot
 		float shooterCloseShot = 0.0; //Potentiometer reading at top of a close shot
 		float shooterBottom = 0.0; //Potentiometer reading when shooter arm is at the bottom spot
+		float transmissionCutoff = driverStation->GetAnalogIn(4);
+		bool useAutoShift = driverStation->GetDigitalIn(3);
 		while (IsOperatorControl()) {  //We only want this to run while in teleop mode!
 			// Make the robot drive!
 			if(fabs(joystickLeft->GetY()) > 0.05) { //Only run motors if the joystick is past 5% from middle
@@ -227,20 +231,34 @@ public:
 			}
 			
 			//Gearshift control
-			//If you push the buttons, the code will put it in the pending shift variable and wait until the robot is moving to shift.
-			if (joystickLeft->GetRawButton(6) && !(joystickLeft->GetRawButton(7))) {
-				pendingShift = 1;
-				driverStationLCD->Printf(DriverStationLCD::kUser_Line2, 1, "Shift High Pending"); //Print out pending shifts!
+			if (useAutoShift) {
+				if (checkForAutoShift(currentShift, transmissionCutoff)) {
+					if (currentShift != 1) {
+						pendingShift = 1;
+					}
+				}
+				else {
+					if (currentShift != -1) {
+						pendingShift = -1;
+					}
+				}
 			}
-			else if (joystickLeft->GetRawButton(7) && !(joystickLeft->GetRawButton(6))) {
-				pendingShift = -1;
-				driverStationLCD->Printf(DriverStationLCD::kUser_Line2, 1, "Shift Low Pending ");
+			else {
+				//If you push the buttons, the code will put it in the pending shift variable and wait until the robot is moving to shift.
+				if (joystickLeft->GetRawButton(6) && !(joystickLeft->GetRawButton(7))) {
+					pendingShift = 1;
+					driverStationLCD->Printf(DriverStationLCD::kUser_Line2, 1, "Shift High Pending"); //Print out pending shifts!
+				}
+				else if (joystickLeft->GetRawButton(7) && !(joystickLeft->GetRawButton(6))) {
+					pendingShift = -1;
+					driverStationLCD->Printf(DriverStationLCD::kUser_Line2, 1, "Shift Low Pending ");
+				}
 			}
-			
 			if (pendingShift == 1 && (fabs(motorLeft->Get()) > 0.1) && (fabs(motorRight->Get()) > 0.1)) { //Only enable solenoids if we're moving
 				driverStationLCD->Printf(DriverStationLCD::kUser_Line2, 1, "Shifting High     "); //Print stuff out!  Yeah!
 				shiftUp->Set(true);  //Set Solenoids
 				shiftDown->Set(false);
+				currentShift = 1;
 				if (!shifting) {
 					shifting = true;  //If this is the start of a shifting operation, set the timer so shifting ends half a second later.
 					shiftTimer = timer->Get() + 0.5;
@@ -251,6 +269,7 @@ public:
 				driverStationLCD->Printf(DriverStationLCD::kUser_Line2, 1, "Shifting Low      ");
 				shiftUp->Set(false);
 				shiftDown->Set(true);
+				currentShift = -1;
 				if (!shifting) {
 					shifting = true;
 					shiftTimer = timer->Get() + 0.5;
@@ -310,6 +329,8 @@ public:
 				shooterFarShot = driverStation->GetAnalogIn(1); //Read analog inputs and set variables to them.
 				shooterCloseShot = driverStation->GetAnalogIn(2);
 				shooterBottom = driverStation->GetAnalogIn(3);
+				transmissionCutoff = driverStation->GetAnalogIn(4);
+				useAutoShift = driverStation->GetDigitalIn(3);
 				driverStationLCD->UpdateLCD(); //Update the DS LCD with new information.
 			} 
 			//increment the count variable
@@ -340,5 +361,36 @@ public:
 		launcherOne->Set(0.0);
 		launcherTwo->Set(0.0);
 	}
+	
+	bool checkForAutoShift(int currentShift, float transmissionCutoff) {
+		//If someone's holding shift button, do that shift.
+		if (joystickLeft->GetRawButton(6)) {
+			return true;
+		}
+		else if (joystickLeft->GetRawButton(7)) {
+			return false;
+		}
+		//If the joysticks are opposite each other (neg vs pos) we're turning and shouldn't shift.
+		if (joystickRight->GetY() * joystickLeft->GetY() < 0) {
+			if (currentShift = 1) {
+				return true;
+			}
+			else {
+				return false;
+			}
+		}
+		//Average the joysticks.
+		float joystickAverage = (joystickRight->GetY() + joystickLeft->GetY()) / 2;
+		//If the joystick is opposite the the wheel direction, shift low
+		if (joystickAverage * driveEncoder->GetRate() < 0) {
+			return false;
+		}
+		//If we're going faster than the transmission cutoff variable (set from DS IO), shift high.
+		if (driveEncoder->GetRate() > transmissionCutoff) {
+			return true;
+		}
+		return false;
+	}
 };
+
 START_ROBOT_CLASS(MainRobot);
