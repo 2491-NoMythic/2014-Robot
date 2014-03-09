@@ -232,12 +232,13 @@ public:
 			
 			//Gearshift control
 			if (useAutoShift) {
-				if (checkForAutoShift(currentShift, transmissionCutoff)) {
+				int ASCheck = checkForAutoShift(currentShift, transmissionCutoff);
+				if (ASCheck == 1) {
 					if (currentShift != 1) {
 						pendingShift = 1;
 					}
 				}
-				else {
+				else if (ASCheck == -1) {
 					if (currentShift != -1) {
 						pendingShift = -1;
 					}
@@ -254,32 +255,39 @@ public:
 					driverStationLCD->Printf(DriverStationLCD::kUser_Line2, 1, "Shift Low Pending ");
 				}
 			}
-			if (pendingShift == 1 && (fabs(motorLeft->Get()) > 0.1) && (fabs(motorRight->Get()) > 0.1)) { //Only enable solenoids if we're moving
+			//if (pendingShift == 1 && (fabs(motorLeft->Get()) > 0.1) && (fabs(motorRight->Get()) > 0.1)) { //Only enable solenoids if we're moving
+			if (pendingShift == 1) { //For autoshifting
 				driverStationLCD->Printf(DriverStationLCD::kUser_Line2, 1, "Shifting High     "); //Print stuff out!  Yeah!
 				shiftUp->Set(true);  //Set Solenoids
 				shiftDown->Set(false);
 				currentShift = 1;
 				if (!shifting) {
 					shifting = true;  //If this is the start of a shifting operation, set the timer so shifting ends half a second later.
-					shiftTimer = timer->Get() + 0.5;
+					shiftTimer = timer->Get() + 0.2;
 				}
 			}
 			//Same thing as before except this is for shifting down.
-			else if (pendingShift == -1 && (fabs(motorLeft->Get()) > 0.1) && (fabs(motorRight->Get()) > 0.1)) {
+			//else if (pendingShift == -1 && (fabs(motorLeft->Get()) > 0.1) && (fabs(motorRight->Get()) > 0.1)) {
+			else if (pendingShift == -1) {
 				driverStationLCD->Printf(DriverStationLCD::kUser_Line2, 1, "Shifting Low      ");
 				shiftUp->Set(false);
 				shiftDown->Set(true);
 				currentShift = -1;
 				if (!shifting) {
 					shifting = true;
-					shiftTimer = timer->Get() + 0.5;
+					shiftTimer = timer->Get() + 0.2;
 				}
 			}
 			else {
 				shiftUp->Set(false);
 				shiftDown->Set(false);
 				if (shifting) { //Reset shifting variable and driverstation LCD
-					driverStationLCD->Printf(DriverStationLCD::kUser_Line2, 1, "                  ");
+					if (currentShift == 1) {
+						driverStationLCD->Printf(DriverStationLCD::kUser_Line2, 1, "Shifted High       ");
+					}
+					else {
+						driverStationLCD->Printf(DriverStationLCD::kUser_Line2, 1, "Shifted Low       ");
+					}
 					shifting = false;
 				}
 			}
@@ -362,34 +370,33 @@ public:
 		launcherTwo->Set(0.0);
 	}
 	
-	bool checkForAutoShift(int currentShift, float transmissionCutoff) {
-		//If someone's holding shift button, do that shift.
+	int checkForAutoShift(int currentShift, float transmissionCutoff) {
+		//If someone's holding a shift button, do that shift.
 		if (joystickLeft->GetRawButton(6)) {
-			return true;
+			return 1;
 		}
 		else if (joystickLeft->GetRawButton(7)) {
-			return false;
+			return -1;
 		}
 		//If the joysticks are opposite each other (neg vs pos) we're turning and shouldn't shift.
 		if (joystickRight->GetY() * joystickLeft->GetY() < 0) {
-			if (currentShift = 1) {
-				return true;
-			}
-			else {
-				return false;
-			}
+			printf("No shift due to turning\n");
+			return 0;
 		}
 		//Average the joysticks.
-		float joystickAverage = (joystickRight->GetY() + joystickLeft->GetY()) / 2;
+		//float joystickAverage = (joystickRight->GetY() + joystickLeft->GetY()) / 2;
 		//If the joystick is opposite the the wheel direction, shift low
-		if (joystickAverage * driveEncoder->GetRate() < 0) {
-			return false;
+		if (joystickRight->GetY() * -1 * driveEncoder->GetRate() < 0) {
+			printf("Shift low due to direction switch.  Speed: %f\n", joystickRight->GetY());
+			return -1;
 		}
 		//If we're going faster than the transmission cutoff variable (set from DS IO), shift high.
-		if (driveEncoder->GetRate() > transmissionCutoff) {
-			return true;
+		if (fabs(driveEncoder->GetRate()) > transmissionCutoff) {
+			printf("Shift high due to speed\n");
+			return 1;
 		}
-		return false;
+		printf("Shift low due to nothing else\n");
+		return -1;
 	}
 };
 
