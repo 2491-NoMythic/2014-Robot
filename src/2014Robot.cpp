@@ -41,10 +41,12 @@
  * Port 2: Right Motor
  * Port 5: Launcher Motor 1
  * Port 6: Launcher Motor 2
+ * Port 7: Loader Motor 1
+ * Port 8: Loader Motor 2
  *
  * Relay Ports
  * Port 1: Compressor
- * Port 2: Loader Motor
+ * Port 2: Loader Motor (Now two talons)
  *
  * Digital Sensor Ports
  * Port 1: Pressure Sensor for Compressor
@@ -66,9 +68,8 @@
 class MainRobot : public SimpleRobot
 {
 	Joystick *joystickLeft, *joystickRight;
-	Talon *motorLeft, *motorRight, *launcherOne, *launcherTwo;
+	Talon *motorLeft, *motorRight, *launcherOne, *launcherTwo, *loaderOne, *loaderTwo;
 	Solenoid *shiftUp, *shiftDown, *lifterUp, *lifterDown;
-	Relay *lifter;
 	Compressor *compressor;
 	AnalogChannel *shooterPot, *sonar;
 	Encoder *driveEncoder;
@@ -94,8 +95,9 @@ public:
 		lifterUp = new Solenoid(4);
 		lifterDown = new Solenoid(3);
 		
-		//Set up the lifter relay
-		lifter = new Relay(2);
+		//Set up the loader motors
+		loaderOne = new Talon(7);
+		loaderTwo = new Talon(8);
 		
 		//Set up the compressor
 		compressor = new Compressor(1,1);
@@ -156,6 +158,7 @@ public:
 	void OperatorControl(void) {
 		driveEncoder->Reset();
 		int count = 0;
+		float loaderSpeed = joystickRight->GetZ()/2+0.5;
 		bool shifting = false; //Variable for shifting
 		int pendingShift = 0; //Stores what if any shifts are pending.  1.0 = shift high, 0.0 = none, -1.0 = shift low
 		int currentShift = 0; //Stores what shift we are currently on.  Same as above.
@@ -185,16 +188,19 @@ public:
 			
 			//Lifter control
 			if(joystickRight->GetRawButton(2) && !(joystickRight->GetRawButton(3))) { //If you're pushing button 2 and not 3 on the right joystick then enable the lifter forward!
-				lifter->Set(Relay::kForward);
+				loaderOne->Set(loaderSpeed);
+				loaderTwo->Set(-1.0 * loaderSpeed);
 				driverStationLCD->Printf(DriverStationLCD::kUser_Line1, 1, "Loading In! "); //Print out the fact that it's happening (maybe I should send this to the netconsole...)
 			}
 			else if(joystickRight->GetRawButton(3) && !(joystickRight->GetRawButton(2))) { //If you're pushing 3 and not 2, enable it backwards.
-				lifter->Set(Relay::kReverse);
+				loaderOne->Set(-1.0 * loaderSpeed);
+				loaderTwo->Set(loaderSpeed);
 				driverStationLCD->Printf(DriverStationLCD::kUser_Line1, 1, "Loading Out!"); //Print out the fact that it's happening
 			}
 			else { //If neither of the previous are true, then disable the lifter motor.
 				driverStationLCD->Printf(DriverStationLCD::kUser_Line1, 1, "            ");
-				lifter->Set(Relay::kOff);
+				loaderOne->Set(0.0);
+				loaderTwo->Set(0.0);
 			}
 			
 			//Launcher control
@@ -324,6 +330,8 @@ public:
 			else {
 				compressor->Start();
 			}
+			//Update the loader speed variable
+			loaderSpeed = joystickRight->GetZ()/2+0.5;
 			//Print the shooter potentiometer voltage to line 3 of the DS LCD
 			driverStationLCD->Printf(DriverStationLCD::kUser_Line3, 1, "Shooter: %f", shooterPot->GetVoltage());
 			//Print the sonar distance in feet to line 4
@@ -332,6 +340,8 @@ public:
 			driverStationLCD->Printf(DriverStationLCD::kUser_Line5, 1, "Speed: %f f/s    ", driveEncoder->GetRate());
 			//Print the drive distance to line 6
 			driverStationLCD->Printf(DriverStationLCD::kUser_Line6, 1, "Distance: %f ft    ", driveEncoder->GetDistance());
+			//Print the loader speed to line 1
+			driverStationLCD->Printf(DriverStationLCD::kUser_Line1, 1, "Loader Speed: %f\%", loaderSpeed);
 			//These things only run once per 100 runs.  Good for network access.
 			if (count % 25 == 0) {
 				shooterFarShot = driverStation->GetAnalogIn(1); //Read analog inputs and set variables to them.
