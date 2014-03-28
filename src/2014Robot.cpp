@@ -23,15 +23,14 @@
  * Button 2: Launcher Retract
  * Trigger + 4: Quicklaunch 1
  * Trigger + 5: Quicklaunch 2
- * Button 6: Shift High
- * Button 7: Shift Low
+ * Button 6: Lifter Retract / Pull Lifter Up
+ * Button 7: Lifter Out / Put Lifter Down
  * 
  * Right Joystick
  * Y Axis: Drive Right Motors
+ * Trigger: Shifting (Off = Low, On = High)
  * Button 2: Load In
  * Button 3: Load Out
- * Button 5: Lifter Retract / Pull Lifter Up
- * Button 4: Lifter Out / Put Lifter Down
  * Button 9: Drive encoder distance reset
  * 
  *
@@ -261,11 +260,11 @@ public:
 			}
 			else {
 				//If you push the buttons, the code will put it in the pending shift variable and wait until the robot is moving to shift.
-				if (joystickLeft->GetRawButton(6) && !(joystickLeft->GetRawButton(7))) {
+				if (joystickRight->GetTrigger()) {
 					pendingShift = 1;
 					driverStationLCD->Printf(DriverStationLCD::kUser_Line2, 1, "Shift High Pending"); //Print out pending shifts!
 				}
-				else if (joystickLeft->GetRawButton(7) && !(joystickLeft->GetRawButton(6))) {
+				else {
 					pendingShift = -1;
 					driverStationLCD->Printf(DriverStationLCD::kUser_Line2, 1, "Shift Low Pending ");
 				}
@@ -308,12 +307,12 @@ public:
 			}
 			
 			//Lifter position control
-			if (joystickRight->GetRawButton(5) && !(joystickRight->GetRawButton(4))) {
+			if (joystickLeft->GetRawButton(6) && !(joystickLeft->GetRawButton(7))) {
 				printf("Lifter Up!");
 				lifterUp->Set(true);
 				lifterDown->Set(false);
 			}
-			else if (joystickRight->GetRawButton(4) && !(joystickRight->GetRawButton(5))) {
+			else if (joystickLeft->GetRawButton(7) && !(joystickLeft->GetRawButton(6))) {
 				printf("Lifter Down!");
 				lifterUp->Set(false);
 				lifterDown->Set(true);
