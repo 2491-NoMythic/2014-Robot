@@ -50,6 +50,10 @@
  *
  * Digital Sensor Ports
  * Port 1: Pressure Sensor for Compressor
+ * Port 10: Right Encoder A
+ * Port 11: Right Encoder B
+ * Port 12: Left Encoder A
+ * Port 13: Left Encoder B
  *
  * Analog Sensor Ports
  * Port 1: Shooter Potentiometer
@@ -72,7 +76,7 @@ class MainRobot : public SimpleRobot
 	Solenoid *shiftUp, *shiftDown, *lifterUp, *lifterDown;
 	Compressor *compressor;
 	AnalogChannel *shooterPot, *sonar;
-	Encoder *driveEncoder;
+	Encoder *encoderRight, *encoderLeft;
 	Timer *timer;
 	DriverStationLCD *driverStationLCD;
 	DriverStation *driverStation;
@@ -107,9 +111,12 @@ public:
 		shooterPot = new AnalogChannel(2);
 		sonar = new AnalogChannel(1);
 		
-		driveEncoder = new Encoder(10,11, true, Encoder::k1X);
-		driveEncoder->SetDistancePerPulse(DRIVE_ENCODER_TO_FEET);
-		driveEncoder->Start();
+		encoderRight = new Encoder(10,11, true, Encoder::k1X);
+		encoderRight->SetDistancePerPulse(DRIVE_ENCODER_TO_FEET);
+		encoderRight->Start();
+		encoderLeft = new Encoder(12,13, false, Encoder::k1X);
+		encoderLeft->SetDistancePerPulse(DRIVE_ENCODER_TO_FEET);
+		encoderLeft->Start();
 		
 		timer = new Timer();
 		timer->Start();
@@ -119,7 +126,8 @@ public:
 		driverStation = DriverStation::GetInstance();
 	}
 	void Autonomous(void) {
-		driveEncoder->Reset();
+		encoderRight->Reset();
+		encoderLeft->Reset();
 		//Stop the compressor
 		compressor->Stop();
 		//Make sure the lifter is down
@@ -156,7 +164,8 @@ public:
 		
 	}
 	void OperatorControl(void) {
-		driveEncoder->Reset();
+		encoderRight->Reset();
+		encoderLeft->Reset();
 		int count = 0;
 		float loaderSpeed = joystickRight->GetZ()/2+0.5;
 		bool shifting = false; //Variable for shifting
@@ -168,7 +177,7 @@ public:
 		float shooterFarShot = 0.0; //Potentiometer reading at top of a far shot
 		float shooterCloseShot = 0.0; //Potentiometer reading at top of a close shot
 		float shooterBottom = 0.0; //Potentiometer reading when shooter arm is at the bottom spot
-		float transmissionCutoff = driverStation->GetAnalogIn(4);
+		float transmissionCutoff = driverStation->GetAnalogIn(4) + 1.0;
 		bool useAutoShift = driverStation->GetDigitalIn(3);
 		while (IsOperatorControl()) {  //We only want this to run while in teleop mode!
 			// Make the robot drive!
@@ -238,7 +247,7 @@ public:
 			
 			//Gearshift control
 			if (useAutoShift) {
-				int ASCheck = checkForAutoShift(currentShift, transmissionCutoff);
+				int ASCheck = checkForAutoShift(transmissionCutoff);
 				if (ASCheck == 1) {
 					if (currentShift != 1) {
 						pendingShift = 1;
@@ -316,7 +325,8 @@ public:
 			
 			//Encoder Reset Button
 			if (joystickRight->GetRawButton(9)) {
-				driveEncoder->Reset();
+				encoderRight->Reset();
+				encoderLeft->Reset();
 			}
 			
 			//Timer expirations
@@ -337,9 +347,9 @@ public:
 			//Print the sonar distance in feet to line 4
 			driverStationLCD->Printf(DriverStationLCD::kUser_Line4, 1, "Sonar: %f ft    ", sonar->GetVoltage() * SONAR_TO_FEET);
 			//Print the drive speed to line 5
-			driverStationLCD->Printf(DriverStationLCD::kUser_Line5, 1, "Speed: %f f/s    ", driveEncoder->GetRate());
+			driverStationLCD->Printf(DriverStationLCD::kUser_Line5, 1, "Right Speed: %f f/s    ", encoderRight->GetRate());
 			//Print the drive distance to line 6
-			driverStationLCD->Printf(DriverStationLCD::kUser_Line6, 1, "Distance: %f ft    ", driveEncoder->GetDistance());
+			driverStationLCD->Printf(DriverStationLCD::kUser_Line6, 1, "Left Speed:  %f ft/s   ", encoderLeft->GetRate());
 			//Print the loader speed to line 1
 			driverStationLCD->Printf(DriverStationLCD::kUser_Line1, 1, "Loader Speed: %f\%", loaderSpeed);
 			//These things only run once per 100 runs.  Good for network access.
@@ -380,7 +390,7 @@ public:
 		launcherTwo->Set(0.0);
 	}
 	
-	int checkForAutoShift(int currentShift, float transmissionCutoff) {
+	int checkForAutoShift(float transmissionCutoff) {
 		//If someone's holding a shift button, do that shift.
 		if (joystickLeft->GetRawButton(6)) {
 			return 1;
@@ -393,20 +403,30 @@ public:
 			printf("No shift due to turning\n");
 			return 0;
 		}
-		//Average the joysticks.
-		//float joystickAverage = (joystickRight->GetY() + joystickLeft->GetY()) / 2;
+		float encoderRightSpeed = encoderRight->GetRate();
+		float encoderLeftSpeed = encoderLeft->GetRate();
+		//If the wheels are going opposite each other, still don't shift
+		if (encoderRightSpeed * encoderLeftSpeed < 0) {
+			printf("No shift due to wheel turning\n");
+			return 0;
+		}
 		//If the joystick is opposite the the wheel direction, shift low
-		if (joystickRight->GetY() * -1 * driveEncoder->GetRate() < 0) {
+		if (joystickRight->GetY() * 1 * encoderRightSpeed < 0) {
 			printf("Shift low due to direction switch.  Speed: %f\n", joystickRight->GetY());
 			return -1;
 		}
+		float encoderAverageRate = (fabs(encoderRightSpeed) + fabs(encoderLeftSpeed))/2;
 		//If we're going faster than the transmission cutoff variable (set from DS IO), shift high.
-		if (fabs(driveEncoder->GetRate()) > transmissionCutoff) {
+		if (encoderAverageRate > transmissionCutoff + 0.2) {
 			printf("Shift high due to speed\n");
 			return 1;
 		}
-		printf("Shift low due to nothing else\n");
-		return -1;
+		else if (encoderAverageRate < transmissionCutoff - 0.2){
+			printf("Shift low due to low speed\n");
+			return -1;
+		}
+		printf("No shift due to dead zone");
+		return 0;
 	}
 };
 
