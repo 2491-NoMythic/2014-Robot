@@ -138,8 +138,8 @@ public:
 		//Drive forward for 1.5 seconds...
 		motorRight->Set(-0.7);
 		motorLeft->Set(0.7);
-		//If driverstation switch is off, wait until the sonar is at 9.5 feet.
-		if(!driverStation->GetDigitalIn(2)){
+		//If driverstation switch is on, wait until the sonar is at 9.5 feet.
+		if(driverStation->GetDigitalIn(2)){
 			while(IsAutonomous() && sonar->GetVoltage() * SONAR_TO_FEET > 9.5) {
 				Wait(0.02);
 			}
@@ -156,11 +156,7 @@ public:
 			//Wait a bit...
 			Wait(2.0);
 			//Shoot!  The shoot time is based on DS analog input 3.
-			float autoShootTime = driverStation->GetAnalogIn(3);
-			if (autoShootTime == 0) {
-				autoShootTime = 0.3;
-			}
-			TimedShot(autoShootTime);
+			TimedShot(driverStation->GetAnalogIn(3));
 		}
 			//Restart the compressor
 			compressor->Start();
@@ -177,8 +173,9 @@ public:
 		double shiftTimer = 0.0; //The timeout will set the pending shift to 0.0 if the timer passes this time.
 		//double lowFreqTimer = 0.0; //Wasn't working... Stores the next time that the low frequency code runs
 		//double shooterTimeout = 0.0; //Backup timeout for shooter in case the sensor malfunctions
-		float quickShotA = driverStation->GetAnalogIn(1);
-		float quickShotB = driverStation->GetAnalogIn(2);
+		float shooterFarShot = 0.0; //Potentiometer reading at top of a far shot
+		float shooterCloseShot = 0.0; //Potentiometer reading at top of a close shot
+		float shooterBottom = 0.0; //Potentiometer reading when shooter arm is at the bottom spot
 		float transmissionCutoff = driverStation->GetAnalogIn(4) + 1.0;
 		bool useAutoShift = driverStation->GetDigitalIn(3);
 		while (IsOperatorControl()) {  //We only want this to run while in teleop mode!
@@ -247,12 +244,12 @@ public:
 			//Quicklaunches
 			if (joystickLeft->GetTrigger() && joystickLeft->GetRawButton(3)) { //If you hold down the trigger and push 11...
 				//Shoot based on the time set on analog input 1 of the DS
-				TimedShot(quickShotA);
+				TimedShot(driverStation->GetAnalogIn(1));
 			}
 			//Same thing as before, but with different buttons and different IO ports.
 			if (joystickLeft->GetTrigger() && joystickLeft->GetRawButton(4)) { //If you hold down the trigger and push 10..
 				//Shoot based on the time set on analog input 2 of the DS
-				TimedShot(quickShotB);
+				TimedShot(driverStation->GetAnalogIn(2));
 			}
 			
 			//Gearshift control
@@ -364,16 +361,11 @@ public:
 			driverStationLCD->Printf(DriverStationLCD::kUser_Line1, 1, "Loader Speed: %f\%", loaderSpeed);
 			//These things only run once per 100 runs.  Good for network access.
 			if (count % 25 == 0) {
-				quickShotA = driverStation->GetAnalogIn(1);
-				if (quickShotA == 0) {
-					quickShotA = 0.3;
-				}
-				quickShotB = driverStation->GetAnalogIn(2);
-				if (quickShotB == 0) {
-					quickShotB = 0.24;
-				}
+				shooterFarShot = driverStation->GetAnalogIn(1); //Read analog inputs and set variables to them.
+				shooterCloseShot = driverStation->GetAnalogIn(2);
+				shooterBottom = driverStation->GetAnalogIn(3);
 				transmissionCutoff = driverStation->GetAnalogIn(4);
-				useAutoShift = !driverStation->GetDigitalIn(3);
+				useAutoShift = driverStation->GetDigitalIn(3);
 				driverStationLCD->UpdateLCD(); //Update the DS LCD with new information.
 			} 
 			//increment the count variable
