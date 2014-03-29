@@ -19,18 +19,18 @@
  * 
  * Left Joystick
  * Y Axis: Drive Left Motors
- * Button 3: Launch
- * Button 2: Launcher Retract
- * Trigger + 4: Quicklaunch 1
- * Trigger + 5: Quicklaunch 2
- * Button 6: Lifter Retract / Pull Lifter Up
- * Button 7: Lifter Out / Put Lifter Down
+ * Hat Up: Launch 3
+ * Hat Down: Launcher Retract 2
+ * Trigger + 3: Quicklaunch 1
+ * Trigger + 4: Quicklaunch 2
+ * Button 9: Lifter Retract / Pull Lifter Up
+ * Button 11: Lifter Out / Put Lifter Down
  * 
  * Right Joystick
  * Y Axis: Drive Right Motors
  * Trigger: Shifting (Off = Low, On = High)
- * Button 2: Load In
- * Button 3: Load Out
+ * Button 3: Load In
+ * Button 4: Load Out
  * Button 9: Drive encoder distance reset
  * 
  *
@@ -195,12 +195,12 @@ public:
 			}
 			
 			//Lifter control
-			if(joystickRight->GetRawButton(2) && !(joystickRight->GetRawButton(3))) { //If you're pushing button 2 and not 3 on the right joystick then enable the lifter forward!
+			if(joystickRight->GetRawButton(3) && !(joystickRight->GetRawButton(4))) { //If you're pushing button 2 and not 3 on the right joystick then enable the lifter forward!
 				loaderOne->Set(loaderSpeed);
 				loaderTwo->Set(-1.0 * loaderSpeed);
 				driverStationLCD->Printf(DriverStationLCD::kUser_Line1, 1, "Loading In! "); //Print out the fact that it's happening (maybe I should send this to the netconsole...)
 			}
-			else if(joystickRight->GetRawButton(3) && !(joystickRight->GetRawButton(2))) { //If you're pushing 3 and not 2, enable it backwards.
+			else if(joystickRight->GetRawButton(4) && !(joystickRight->GetRawButton(3))) { //If you're pushing 3 and not 2, enable it backwards.
 				loaderOne->Set(-1.0 * loaderSpeed);
 				loaderTwo->Set(loaderSpeed);
 				driverStationLCD->Printf(DriverStationLCD::kUser_Line1, 1, "Loading Out!"); //Print out the fact that it's happening
@@ -212,12 +212,12 @@ public:
 			}
 			
 			//Launcher control
-			if(joystickLeft->GetRawButton(3) && !(joystickLeft->GetRawButton(2))) { //If you're pushing 6 and not 7 on the left joystick then launch the launcher!
+			if(joystickLeft->GetRawAxis(6) < 0) { //If you're pushing 6 and not 7 on the left joystick then launch the launcher!
 				printf("Launching!\n"); //Print out the fact that it's happening to the netconsole.
 				launcherOne->Set(1.0);
 				launcherTwo->Set(1.0);
 			}
-			else if(joystickLeft->GetRawButton(2) && !(joystickLeft->GetRawButton(3))) {
+			else if(joystickLeft->GetRawAxis(6) > 0) {
 				printf("Bringing launcher back.\n"); //Print out the fact that it's happening to the netconsole.
 				if(driverStation->GetDigitalIn(8)) {
 					launcherOne->Set(-1.0);
@@ -228,18 +228,26 @@ public:
 					launcherTwo->Set(-0.2);
 				}
 			}
+			else if (joystickLeft->GetRawButton(6)) {
+				launcherOne->Set(0.5);
+				launcherTwo->Set(0.5);
+			}
+			else if (joystickLeft->GetRawButton(5)) {
+				launcherOne->Set(0.3);
+				launcherTwo->Set(0.3);
+			}
 			else {
 				launcherOne->Set(0.0);
 				launcherTwo->Set(0.0);
 			}
 			
 			//Quicklaunches
-			if (joystickLeft->GetTrigger() && joystickLeft->GetRawButton(4)) { //If you hold down the trigger and push 11...
+			if (joystickLeft->GetTrigger() && joystickLeft->GetRawButton(3)) { //If you hold down the trigger and push 11...
 				//Shoot based on the time set on analog input 1 of the DS
 				TimedShot(driverStation->GetAnalogIn(1));
 			}
 			//Same thing as before, but with different buttons and different IO ports.
-			if (joystickLeft->GetTrigger() && joystickLeft->GetRawButton(5)) { //If you hold down the trigger and push 10..
+			if (joystickLeft->GetTrigger() && joystickLeft->GetRawButton(4)) { //If you hold down the trigger and push 10..
 				//Shoot based on the time set on analog input 2 of the DS
 				TimedShot(driverStation->GetAnalogIn(2));
 			}
@@ -307,12 +315,12 @@ public:
 			}
 			
 			//Lifter position control
-			if (joystickLeft->GetRawButton(6) && !(joystickLeft->GetRawButton(7))) {
+			if (joystickLeft->GetRawButton(9) && !(joystickLeft->GetRawButton(11))) {
 				printf("Lifter Up!");
 				lifterUp->Set(true);
 				lifterDown->Set(false);
 			}
-			else if (joystickLeft->GetRawButton(7) && !(joystickLeft->GetRawButton(6))) {
+			else if (joystickLeft->GetRawButton(11) && !(joystickLeft->GetRawButton(9))) {
 				printf("Lifter Down!");
 				lifterUp->Set(false);
 				lifterDown->Set(true);
@@ -340,7 +348,7 @@ public:
 				compressor->Start();
 			}
 			//Update the loader speed variable
-			loaderSpeed = joystickRight->GetZ()/2+0.5;
+			loaderSpeed = joystickRight->GetRawAxis(4)/2+0.5;
 			//Print the shooter potentiometer voltage to line 3 of the DS LCD
 			driverStationLCD->Printf(DriverStationLCD::kUser_Line3, 1, "Shooter: %f", shooterPot->GetVoltage());
 			//Print the sonar distance in feet to line 4
