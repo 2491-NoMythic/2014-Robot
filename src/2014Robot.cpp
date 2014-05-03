@@ -136,8 +136,8 @@ public:
 		shiftUp->Set(true);
 		shiftDown->Set(false);
 		//Drive forward for 1.5 seconds...
-		motorRight->Set(-0.7);
-		motorLeft->Set(0.7);
+		motorRight->Set(-0.75);
+		motorLeft->Set(0.75);
 		//If driverstation switch is on, wait until the sonar is at 9.5 feet.
 		if(driverStation->GetDigitalIn(2)){
 			while(IsAutonomous() && sonar->GetVoltage() * SONAR_TO_FEET > 9.5) {
