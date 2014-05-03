@@ -15,6 +15,7 @@
  * Digital Input 1: Enable Shooting in Autonomous
  * Digital Input 2: Use Sonar in Autonomous
  * Digital Input 3: Enable Automatic Transmission
+ * Digital Input 7: Use Full Control (Off = Kid Friendly Mode)
  * Digital Input 8: Talon Calibration Mode
  * 
  * Left Joystick
@@ -126,42 +127,43 @@ public:
 		driverStation = DriverStation::GetInstance();
 	}
 	void Autonomous(void) {
-		encoderRight->Reset();
-		encoderLeft->Reset();
-		//Stop the compressor
-		compressor->Stop();
-		//Make sure the lifter is down
-		lifterDown->Set(true);
-		lifterUp->Set(false);
-		//Make sure we're in high gear
-		shiftUp->Set(true);
-		shiftDown->Set(false);
-		//Drive forward for 1.5 seconds...
-		motorRight->Set(-0.7);
-		motorLeft->Set(0.7);
-		//If driverstation switch is on, wait until the sonar is at 9.5 feet.
-		if(driverStation->GetDigitalIn(2)){
-			while(IsAutonomous() && sonar->GetVoltage() * SONAR_TO_FEET > 9.5) {
-				Wait(0.02);
+		if (driverStation->GetDigitalIn(7)) { //Only run autonomous if full control is on
+			encoderRight->Reset();
+			encoderLeft->Reset();
+			//Stop the compressor
+			compressor->Stop();
+			//Make sure the lifter is down
+			lifterDown->Set(true);
+			lifterUp->Set(false);
+			//Make sure we're in high gear
+			shiftUp->Set(true);
+			shiftDown->Set(false);
+			//Drive forward for 1.5 seconds...
+			motorRight->Set(-0.7);
+			motorLeft->Set(0.7);
+			//If driverstation switch is on, wait until the sonar is at 9.5 feet.
+			if(driverStation->GetDigitalIn(2)){
+				while(IsAutonomous() && sonar->GetVoltage() * SONAR_TO_FEET > 9.5) {
+					Wait(0.02);
+				}
 			}
+			else { //Otherwise, wait for 1.0 seconds.
+				Wait(1.3);
+			}
+			lifterDown->Set(false);
+			shiftUp->Set(false);
+			motorRight->Set(0.0);
+			motorLeft->Set(0.0);
+			//If autonomous shooting is enabled...
+			if(driverStation->GetDigitalIn(1)) {
+				//Wait a bit...
+				Wait(2.0);
+				//Shoot!  The shoot time is based on DS analog input 3.
+				TimedShot(driverStation->GetAnalogIn(3), 1.0);
+			}
+				//Restart the compressor
+				compressor->Start();
 		}
-		else { //Otherwise, wait for 1.0 seconds.
-			Wait(1.3);
-		}
-		lifterDown->Set(false);
-		shiftUp->Set(false);
-		motorRight->Set(0.0);
-		motorLeft->Set(0.0);
-		//If autonomous shooting is enabled...
-		if(driverStation->GetDigitalIn(1)) {
-			//Wait a bit...
-			Wait(2.0);
-			//Shoot!  The shoot time is based on DS analog input 3.
-			TimedShot(driverStation->GetAnalogIn(3));
-		}
-			//Restart the compressor
-			compressor->Start();
-		
 	}
 	void OperatorControl(void) {
 		encoderRight->Reset();
@@ -179,6 +181,8 @@ public:
 		float shooterBottom = 0.0; //Potentiometer reading when shooter arm is at the bottom spot
 		float transmissionCutoff = driverStation->GetAnalogIn(4) + 1.0;
 		bool useAutoShift = driverStation->GetDigitalIn(3);
+		bool fullControl = driverStation->GetDigitalIn(7);
+		
 		while (IsOperatorControl()) {  //We only want this to run while in teleop mode!
 			// Make the robot drive!
 			if(fabs(joystickLeft->GetY()) > 0.05) { //Only run motors if the joystick is past 5% from middle
@@ -215,8 +219,14 @@ public:
 			//Launcher control
 			if(joystickLeft->GetRawButton(3) && !(joystickLeft->GetRawButton(2))) { //If you're pushing 6 and not 7 on the left joystick then launch the launcher!
 				printf("Launching!\n"); //Print out the fact that it's happening to the netconsole.
-				launcherOne->Set(1.0);
-				launcherTwo->Set(1.0);
+				if (fullControl) { //full speed if full control is on
+					launcherOne->Set(1.0);
+					launcherTwo->Set(1.0);
+				}
+				else { //otherwise, go half speed.
+					launcherOne->Set(0.5);
+					launcherTwo->Set(0.5);
+				}
 			}
 			else if(joystickLeft->GetRawButton(2) && !(joystickLeft->GetRawButton(3))) {
 				printf("Bringing launcher back.\n"); //Print out the fact that it's happening to the netconsole.
@@ -237,16 +247,26 @@ public:
 			//Quicklaunches
 			if (joystickLeft->GetTrigger() && joystickLeft->GetRawButton(4)) { //If you hold down the trigger and push 11...
 				//Shoot based on the time set on analog input 1 of the DS
-				TimedShot(driverStation->GetAnalogIn(1));
+				if (fullControl) { //full power only if full control is on
+					TimedShot(driverStation->GetAnalogIn(1), 1.0);
+				}
+				else {
+					TimedShot(driverStation->GetAnalogIn(1), 0.5);
+				}
 			}
 			//Same thing as before, but with different buttons and different IO ports.
 			if (joystickLeft->GetTrigger() && joystickLeft->GetRawButton(5)) { //If you hold down the trigger and push 10..
 				//Shoot based on the time set on analog input 2 of the DS
-				TimedShot(driverStation->GetAnalogIn(2));
+				if (fullControl) { //full power only if full control is on
+					TimedShot(driverStation->GetAnalogIn(2), 1.0);
+				}
+				else {
+					TimedShot(driverStation->GetAnalogIn(2), 0.5);
+				}
 			}
 			
 			//Gearshift control
-			if (useAutoShift) {
+			if (useAutoShift && fullControl) { //Needs auto shift on and kidproof off / fullControl on
 				int ASCheck = checkForAutoShift(transmissionCutoff);
 				if (ASCheck == 1) {
 					if (currentShift != 1) {
@@ -259,8 +279,8 @@ public:
 					}
 				}
 			}
-			else {
-				//If you push the buttons, the code will put it in the pending shift variable and wait until the robot is moving to shift.
+			else if (fullControl) {
+				//If you push the buttons, the code will put it in the pending shift variable and wait until the robot is moving to shift (Not anymore, to make autoshifting work, the shift happens right away).
 				if (joystickLeft->GetRawButton(6) && !(joystickLeft->GetRawButton(7))) {
 					pendingShift = 1;
 					driverStationLCD->Printf(DriverStationLCD::kUser_Line2, 1, "Shift High Pending"); //Print out pending shifts!
@@ -270,6 +290,12 @@ public:
 					driverStationLCD->Printf(DriverStationLCD::kUser_Line2, 1, "Shift Low Pending ");
 				}
 			}
+			else { // if kidproof is on / fullControl is off always shift low
+				if (currentShift != -1) {
+					pendingShift = -1;
+				}
+			}
+			
 			//if (pendingShift == 1 && (fabs(motorLeft->Get()) > 0.1) && (fabs(motorRight->Get()) > 0.1)) { //Only enable solenoids if we're moving
 			if (pendingShift == 1) { //For autoshifting
 				driverStationLCD->Printf(DriverStationLCD::kUser_Line2, 1, "Shifting High     "); //Print stuff out!  Yeah!
@@ -359,6 +385,7 @@ public:
 				shooterBottom = driverStation->GetAnalogIn(3);
 				transmissionCutoff = driverStation->GetAnalogIn(4);
 				useAutoShift = driverStation->GetDigitalIn(3);
+				fullControl = driverStation->GetDigitalIn(7);
 				driverStationLCD->UpdateLCD(); //Update the DS LCD with new information.
 			} 
 			//increment the count variable
@@ -367,12 +394,12 @@ public:
 		}
 	}
 	//Function to shoot based on a set time
-	void TimedShot(float time) {
+	void TimedShot(float time, float power) {
 		//Stop the compressor...
 		compressor->Stop();
 		//Launch!
-		launcherOne->Set(1.0);
-		launcherTwo->Set(1.0);
+		launcherOne->Set(power);
+		launcherTwo->Set(power);
 		//Wait for the given time
 		Wait(time);
 		//Restart the compressor
