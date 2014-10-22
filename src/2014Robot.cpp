@@ -15,6 +15,7 @@
  * Digital Input 1: Enable Shooting in Autonomous
  * Digital Input 2: Use Sonar in Autonomous
  * Digital Input 3: Enable Automatic Transmission
+ * Digital Input 4: 2 Ball Autonomous
  * Digital Input 7: Use Full Control (Off = Kid Friendly Mode)
  * Digital Input 8: Talon Calibration Mode
  * 
@@ -75,8 +76,8 @@ class MainRobot : public SimpleRobot
 	Talon *motorLeft, *motorRight, *launcherOne, *launcherTwo, *loaderOne, *loaderTwo;
 	Solenoid *shiftUp, *shiftDown, *lifterUp, *lifterDown;
 	Compressor *compressor;
-	AnalogChannel *shooterPot, *sonar;
-	Encoder *encoderRight, *encoderLeft;
+	AnalogChannel *sonar;
+	Encoder *encoderRight, *encoderLeft, *encoderShoot;
 	Timer *timer;
 	DriverStationLCD *driverStationLCD;
 	DriverStation *driverStation;
@@ -108,7 +109,6 @@ public:
 		//Start the compressor!
 		compressor->Start();
 		
-		shooterPot = new AnalogChannel(2);
 		sonar = new AnalogChannel(1);
 		
 		encoderRight = new Encoder(10,11, true, Encoder::k1X);
@@ -117,6 +117,7 @@ public:
 		encoderLeft = new Encoder(12,13, false, Encoder::k1X);
 		encoderLeft->SetDistancePerPulse(DRIVE_ENCODER_TO_FEET);
 		encoderLeft->Start();
+		encoderShoot = new Encoder(8,9, false, Encoder::k1X);
 		
 		timer = new Timer();
 		timer->Start();
@@ -129,17 +130,22 @@ public:
 		if (driverStation->GetDigitalIn(7)) { //Only run autonomous if full control is on
 			encoderRight->Reset();
 			encoderLeft->Reset();
+			
 			//Stop the compressor
 			compressor->Stop();
+			
 			//Make sure the lifter is down
 			lifterDown->Set(true);
 			lifterUp->Set(false);
+			
 			//Make sure we're in high gear
 			shiftUp->Set(true);
 			shiftDown->Set(false);
+			
 			//Drive forward for 1.5 seconds...
 			motorRight->Set(-0.75);
 			motorLeft->Set(0.75);
+			
 			//If driverstation switch is on, wait until the sonar is at 9.5 feet.
 			if(driverStation->GetDigitalIn(2)){
 				while(IsAutonomous() && sonar->GetVoltage() * SONAR_TO_FEET > 9.5) {
@@ -153,6 +159,7 @@ public:
 			shiftUp->Set(false);
 			motorRight->Set(0.0);
 			motorLeft->Set(0.0);
+			
 			//If autonomous shooting is enabled...
 			if(driverStation->GetDigitalIn(1)) {
 				//Wait a bit...
@@ -160,8 +167,9 @@ public:
 				//Shoot!  The shoot time is based on DS analog input 3.
 				TimedShot(driverStation->GetAnalogIn(3), 1.0);
 			}
-				//Restart the compressor
-				compressor->Start();
+			
+			//Restart the compressor
+			compressor->Start();
 		}
 	}
 	void OperatorControl(void) {
@@ -362,6 +370,10 @@ public:
 				encoderLeft->Reset();
 			}
 			
+			if (joystickRight->GetRawButton(10)) {
+				encoderShoot->Reset();
+			}
+			
 			//Timer expirations
 			if (shifting && timer->HasPeriodPassed(shiftTimer)) { //If the timer passes the time written to the shiftTimer variable, set the pending shift to none.  This will stop the shift the next run of the code
 				pendingShift = 0;
@@ -375,16 +387,16 @@ public:
 			}
 			//Update the loader speed variable
 			loaderSpeed = joystickRight->GetRawAxis(4)/2+0.5;
-			//Print the shooter potentiometer voltage to line 3 of the DS LCD
-			driverStationLCD->Printf(DriverStationLCD::kUser_Line3, 1, "Shooter: %f", shooterPot->GetVoltage());
-			//Print the sonar distance in feet to line 4
-			driverStationLCD->Printf(DriverStationLCD::kUser_Line4, 1, "Sonar: %f ft    ", sonar->GetVoltage() * SONAR_TO_FEET);
-			//Print the drive speed to line 5
-			driverStationLCD->Printf(DriverStationLCD::kUser_Line5, 1, "Right Speed: %f f/s    ", encoderRight->GetRate());
-			//Print the drive distance to line 6
-			driverStationLCD->Printf(DriverStationLCD::kUser_Line6, 1, "Left Speed:  %f ft/s   ", encoderLeft->GetRate());
 			//Print the loader speed to line 1
 			driverStationLCD->Printf(DriverStationLCD::kUser_Line1, 1, "Loader Speed: %f\%", loaderSpeed);
+			//Print the shooter potentiometer voltage to line 3 of the DS LCD
+			driverStationLCD->Printf(DriverStationLCD::kUser_Line3, 1, "Shooter Speed: %f", encoderShoot->GetRate());
+			
+			driverStationLCD->Printf(DriverStationLCD::kUser_Line4, 1, "Shooter Pos: %f", encoderShoot->GetDistance());
+			//Print the sonar distance in feet to line 5
+			driverStationLCD->Printf(DriverStationLCD::kUser_Line5, 1, "Sonar: %f ft    ", sonar->GetVoltage() * SONAR_TO_FEET);
+			//Print the drive speed to line 6
+			driverStationLCD->Printf(DriverStationLCD::kUser_Line6, 1, "Speed:  %f ft/s   ", (encoderLeft->GetRate() + encoderRight->GetRate())/2);
 			//These things only run once per 100 runs.  Good for network access.
 			if (count % 25 == 0) {
 				shooterFarShot = driverStation->GetAnalogIn(1); //Read analog inputs and set variables to them.
