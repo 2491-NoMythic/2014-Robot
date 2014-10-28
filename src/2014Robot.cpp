@@ -4,6 +4,10 @@
 #define SONAR_TO_INCHES 102.4
 #define SONAR_TO_FEET 8.533
 #define DRIVE_ENCODER_TO_FEET 0.00434782608695652173913043478261
+#define SHOOTER_MIN_SPEED 0.5
+#define SHOOTER_MIN_DISTANCE 5.0
+#define MAX_QUICKSHOT_TIME 0.5
+
 
 /*
  * Button Config:
@@ -434,6 +438,36 @@ public:
 		Wait(time*1.5);
 		launcherOne->Set(0.0);
 		launcherTwo->Set(0.0);
+	}
+	
+	void positionShot(float position, float power) {
+		double startTime = timer->Get();
+		compressor->Stop();
+		launcherOne->Set(power);
+		launcherTwo->Set(power);
+		while((encoderShoot->GetDistance() < position) && (timer->Get - startTime < MAX_QUICKSHOT_TIME))
+		{
+			Wait(0.01);
+		}
+		launcherOne->Set(0.0);
+		launcherTwo->Set(0.0);
+		compressor->Start();
+		
+		Wait(0.1);
+		
+		launcherOne->Set(-0.2);
+		launcherTwo->Set(-0.2);
+		
+		Wait(0.1);
+		
+		while(encoderShoot->GetDistance() > SHOOTER_MIN_DISTANCE && encoderShoot->GetRate() > SHOOTER_MIN_SPEED) {
+			Wait(0.01);
+		}
+		
+		launcherOne->Set(0.0);
+		launcherTwo->Set(0.0);
+		
+			
 	}
 	
 	int checkForAutoShift(float transmissionCutoff) {
