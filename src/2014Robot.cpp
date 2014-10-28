@@ -471,20 +471,6 @@ public:
 		compressor->Start();
 		
 		Wait(0.1);
-		
-		launcherOne->Set(-0.2);
-		launcherTwo->Set(-0.2);
-		
-		Wait(0.1);
-		
-		while(encoderShoot->GetDistance() > SHOOTER_MIN_DISTANCE && encoderShoot->GetRate() > SHOOTER_MIN_SPEED) {
-			Wait(0.01);
-		}
-		
-		launcherOne->Set(0.0);
-		launcherTwo->Set(0.0);
-		
-			
 	}
 	
 	int checkForAutoShift(float transmissionCutoff) {
