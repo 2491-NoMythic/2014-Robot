@@ -193,6 +193,8 @@ public:
 		float transmissionCutoff = driverStation->GetAnalogIn(4) + 1.0;
 		bool useAutoShift = driverStation->GetDigitalIn(3);
 		bool fullControl = driverStation->GetDigitalIn(7);
+		bool retractShooter = false;
+		bool shooterIsRetracted = false;
 		
 		while (IsOperatorControl()) {  //We only want this to run while in teleop mode!
 			// Make the robot drive!
@@ -284,6 +286,21 @@ public:
 				}
 			}
 			
+			if(retractShooter)
+			{
+				
+				if(encoderShoot->GetDistance() > SHOOTER_MIN_DISTANCE){
+					launcherOne->Set(-0.2);
+					launcherTwo->Set(-0.2);
+				}
+				else {
+					launcherOne->Set(0.0);
+					launcherTwo->Set(0.0);
+					retractShooter = false;
+					shooterIsRetracted = true;
+				}
+			}
+				
 			//Gearshift control
 			if (useAutoShift && fullControl) { //Needs auto shift on and kidproof off / fullControl on
 				int ASCheck = checkForAutoShift(transmissionCutoff);
