@@ -122,6 +122,8 @@ public:
 		encoderLeft->SetDistancePerPulse(DRIVE_ENCODER_TO_FEET);
 		encoderLeft->Start();
 		encoderShoot = new Encoder(8,9, false, Encoder::k1X);
+		encoderShoot->SetDistancePerPulse(DRIVE_ENCODER_TO_FEET);
+		encoderShoot->Start();
 		
 		timer = new Timer();
 		timer->Start();
@@ -286,6 +288,10 @@ public:
 				}
 			}
 			
+			if(joystickRight->GetRawButton(12)){
+				retractShooter = true;
+			}
+			
 			if(retractShooter)
 			{
 				
@@ -417,7 +423,7 @@ public:
 			//Print the sonar distance in feet to line 5
 			driverStationLCD->Printf(DriverStationLCD::kUser_Line5, 1, "Sonar: %f ft    ", sonar->GetVoltage() * SONAR_TO_FEET);
 			//Print the drive speed to line 6
-			driverStationLCD->Printf(DriverStationLCD::kUser_Line6, 1, "Speed:  %f ft/s   ", (encoderLeft->GetRate() + encoderRight->GetRate())/2);
+			driverStationLCD->Printf(DriverStationLCD::kUser_Line6, 1, "Speed: %f ft/s   ", (encoderLeft->GetRate() + encoderRight->GetRate())/2);
 			//These things only run once per 100 runs.  Good for network access.
 			if (count % 25 == 0) {
 				shooterFarShot = driverStation->GetAnalogIn(1); //Read analog inputs and set variables to them.
@@ -462,7 +468,7 @@ public:
 		compressor->Stop();
 		launcherOne->Set(power);
 		launcherTwo->Set(power);
-		while((encoderShoot->GetDistance() < position) && (timer->Get - startTime < MAX_QUICKSHOT_TIME))
+		while((encoderShoot->GetDistance() < position) && (timer->Get() - startTime < MAX_QUICKSHOT_TIME))
 		{
 			Wait(0.01);
 		}
