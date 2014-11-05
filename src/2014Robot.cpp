@@ -4,9 +4,11 @@
 #define SONAR_TO_INCHES 102.4
 #define SONAR_TO_FEET 8.533
 #define DRIVE_ENCODER_TO_FEET 0.00434782608695652173913043478261
-#define SHOOTER_MIN_SPEED 0.5
+#define SHOOTER_ENCODER_TO_DEGREES 0.6
+#define SHOOTER_MIN_SPEED 10.0
 #define SHOOTER_MIN_DISTANCE 5.0
 #define MAX_QUICKSHOT_TIME 0.5
+#define MAX_SHOOTER_DISTANCE 180.0
 
 
 /*
@@ -122,7 +124,7 @@ public:
 		encoderLeft->SetDistancePerPulse(DRIVE_ENCODER_TO_FEET);
 		encoderLeft->Start();
 		encoderShoot = new Encoder(8,9, false, Encoder::k1X);
-		encoderShoot->SetDistancePerPulse(DRIVE_ENCODER_TO_FEET);
+		encoderShoot->SetDistancePerPulse(SHOOTER_ENCODER_TO_DEGREES);
 		encoderShoot->Start();
 		
 		timer = new Timer();
@@ -181,6 +183,7 @@ public:
 	void OperatorControl(void) {
 		encoderRight->Reset();
 		encoderLeft->Reset();
+		encoderShoot->Reset();
 		int count = 0;
 		float loaderSpeed = joystickRight->GetZ()/2+0.5;
 		bool shifting = false; //Variable for shifting
@@ -232,7 +235,7 @@ public:
 			}
 			
 			//Launcher control
-			if(joystickLeft->GetRawAxis(6) < 0) { //If you're pushing 6 and not 7 on the left joystick then launch the launcher!
+			if(joystickLeft->GetRawAxis(6) < 0 && encoderShoot->GetDistance() < MAX_SHOOTER_DISTANCE) { //If you're pushing 6 and not 7 on the left joystick then launch the launcher!
 				printf("Launching!\n"); //Print out the fact that it's happening to the netconsole.
 				if (fullControl) { //full speed if full control is on
 					launcherOne->Set(1.0);
@@ -254,11 +257,11 @@ public:
 					launcherTwo->Set(-0.2);
 				}
 			}
-			else if (joystickLeft->GetRawButton(6)) {
+			else if (joystickLeft->GetRawButton(6) && encoderShoot->GetDistance() < MAX_SHOOTER_DISTANCE) {
 				launcherOne->Set(0.5);
 				launcherTwo->Set(0.5);
 			}
-			else if (joystickLeft->GetRawButton(5)) {
+			else if (joystickLeft->GetRawButton(5) && encoderShoot->GetDistance() < MAX_SHOOTER_DISTANCE) {
 				launcherOne->Set(0.3);
 				launcherTwo->Set(0.3);
 			}
