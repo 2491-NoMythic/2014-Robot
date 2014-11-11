@@ -173,7 +173,7 @@ public:
 				//Wait a bit...
 				Wait(2.0);
 				//Shoot!  The shoot time is based on DS analog input 3.
-				TimedShot(driverStation->GetAnalogIn(3), 1.0);
+				timedShot(driverStation->GetAnalogIn(3), 1.0);
 			}
 			
 			//Restart the compressor
@@ -273,21 +273,29 @@ public:
 			//Quicklaunches
 			if (joystickLeft->GetTrigger() && joystickLeft->GetRawButton(3)) { //If you hold down the trigger and push 11...
 				//Shoot based on the time set on analog input 1 of the DS
+				float position = driverStation->GetAnalogIn(1) * 100;
+				if (position > 180.0) {
+					position = 180.0;
+				}
 				if (fullControl) { //full power only if full control is on
-					TimedShot(driverStation->GetAnalogIn(1), 1.0);
+					positionShot(position, 1.0);
 				}
 				else {
-					TimedShot(driverStation->GetAnalogIn(1), 0.5);
+					positionShot(position, 0.5);
 				}
 			}
 			//Same thing as before, but with different buttons and different IO ports.
 			if (joystickLeft->GetTrigger() && joystickLeft->GetRawButton(4)) { //If you hold down the trigger and push 10..
 				//Shoot based on the time set on analog input 2 of the DS
+				float position = driverStation->GetAnalogIn(1) * 100;
+				if (position > 180.0) {
+					position = 180.0;
+				}
 				if (fullControl) { //full power only if full control is on
-					TimedShot(driverStation->GetAnalogIn(2), 1.0);
+					positionShot(position, 1.0);
 				}
 				else {
-					TimedShot(driverStation->GetAnalogIn(2), 0.5);
+					positionShot(position, 0.5);
 				}
 			}
 			
@@ -443,7 +451,7 @@ public:
 		}
 	}
 	//Function to shoot based on a set time
-	void TimedShot(float time, float power) {
+	void timedShot(float time, float power) {
 		//Stop the compressor...
 		compressor->Stop();
 		//Launch!
