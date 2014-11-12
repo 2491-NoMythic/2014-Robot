@@ -283,6 +283,7 @@ public:
 				else {
 					positionShot(position, 0.5);
 				}
+				retractShooter = true;
 			}
 			//Same thing as before, but with different buttons and different IO ports.
 			if (joystickLeft->GetTrigger() && joystickLeft->GetRawButton(4)) { //If you hold down the trigger and push 10..
@@ -297,6 +298,7 @@ public:
 				else {
 					positionShot(position, 0.5);
 				}
+				retractShooter = true;
 			}
 			
 			if(joystickRight->GetRawButton(12)){
@@ -307,8 +309,8 @@ public:
 			{
 				
 				if(encoderShoot->GetDistance() > SHOOTER_MIN_DISTANCE){
-					launcherOne->Set(-0.2);
-					launcherTwo->Set(-0.2);
+					launcherOne->Set(-0.25);
+					launcherTwo->Set(-0.25);
 				}
 				else {
 					launcherOne->Set(0.0);
