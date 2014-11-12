@@ -173,7 +173,7 @@ public:
 				//Wait a bit...
 				Wait(2.0);
 				//Shoot!  The shoot time is based on DS analog input 3.
-				timedShot(driverStation->GetAnalogIn(3), 1.0);
+				timedShot(0.3, 1.0);
 			}
 			
 			//Restart the compressor
@@ -253,8 +253,8 @@ public:
 					launcherTwo->Set(-1.0);
 				}
 				else {
-					launcherOne->Set(-0.2);
-					launcherTwo->Set(-0.2);
+					launcherOne->Set(-0.3);
+					launcherTwo->Set(-0.3);
 				}
 			}
 			else if (joystickLeft->GetRawButton(6) && encoderShoot->GetDistance() < MAX_SHOOTER_DISTANCE) {
@@ -278,7 +278,7 @@ public:
 					position = 180.0;
 				}
 				if (fullControl) { //full power only if full control is on
-					positionShot(position, 1.0);
+					positionShot(position, driverStation->GetAnalogIn(3));
 				}
 				else {
 					positionShot(position, 0.5);
@@ -288,12 +288,12 @@ public:
 			//Same thing as before, but with different buttons and different IO ports.
 			if (joystickLeft->GetTrigger() && joystickLeft->GetRawButton(4)) { //If you hold down the trigger and push 10..
 				//Shoot based on the time set on analog input 2 of the DS
-				float position = driverStation->GetAnalogIn(1) * 100;
+				float position = driverStation->GetAnalogIn(2) * 100;
 				if (position > 180.0) {
 					position = 180.0;
 				}
 				if (fullControl) { //full power only if full control is on
-					positionShot(position, 1.0);
+					positionShot(position, driverStation->GetAnalogIn(4));
 				}
 				else {
 					positionShot(position, 0.5);
