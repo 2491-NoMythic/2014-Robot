@@ -156,7 +156,7 @@ public:
 			
 			//If driverstation switch is on, wait until the sonar is at 9.5 feet.
 			if(driverStation->GetDigitalIn(2)){
-				while(IsAutonomous() && sonar->GetVoltage() * SONAR_TO_FEET > 9.5) {
+				while(IsAutonomous() && encoderLeft->GetDistance < 12) {
 					Wait(0.02);
 				}
 			}
@@ -173,7 +173,7 @@ public:
 				//Wait a bit...
 				Wait(2.0);
 				//Shoot!  The shoot time is based on DS analog input 3.
-				timedShot(0.3, 1.0);
+				positionShot(driverStation->GetAnalogIn(1), driverStation->GetAnalogIn(3));
 			}
 			
 			//Restart the compressor
