@@ -154,9 +154,10 @@ public:
 			motorRight->Set(-0.75);
 			motorLeft->Set(0.75);
 			
-			//If driverstation switch is on, wait until the sonar is at 9.5 feet.
+			//If driverstation switch is on, wait until we've driven 12 feet
+			encoderLeft->Reset();
 			if(driverStation->GetDigitalIn(2)){
-				while(IsAutonomous() && encoderLeft->GetDistance < 12) {
+				while(IsAutonomous() && encoderLeft->GetDistance() < 12) {
 					Wait(0.02);
 				}
 			}
