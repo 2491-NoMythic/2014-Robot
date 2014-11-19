@@ -200,8 +200,8 @@ public:
 		bool useAutoShift = driverStation->GetDigitalIn(3);
 		bool fullControl = driverStation->GetDigitalIn(7);
 		bool retractShooter = false;
-		bool shooterIsRetracted = false;
-		
+		double previousPos = -2;
+
 		while (IsOperatorControl()) {  //We only want this to run while in teleop mode!
 			// Make the robot drive!
 			if(fabs(joystickLeft->GetY()) > 0.05) { //Only run motors if the joystick is past 5% from middle
@@ -305,21 +305,24 @@ public:
 			if(joystickRight->GetRawButton(12)){
 				retractShooter = true;
 			}
-			
+
 			if(retractShooter)
 			{
-				
-				if(encoderShoot->GetDistance() > SHOOTER_MIN_DISTANCE){
-					launcherOne->Set(-0.25);
-					launcherTwo->Set(-0.25);
-				}
-				else {
+
+				if(previousPos == encoderShoot->GetDistance()) {
 					launcherOne->Set(0.0);
 					launcherTwo->Set(0.0);
+					encoderShoot->Reset();
 					retractShooter = false;
-					shooterIsRetracted = true;
 				}
+				else {
+				launcherOne->Set(-0.25);
+				launcherOne->Set(-0.25);
+				}
+
+				previousPos = encoderShoot->GetDistance();
 			}
+				
 				
 			//Gearshift control
 			if (useAutoShift && fullControl) { //Needs auto shift on and kidproof off / fullControl on
