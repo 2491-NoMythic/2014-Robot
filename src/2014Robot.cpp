@@ -483,6 +483,11 @@ public:
 	void positionShot(float position, float power) {
 		double startTime = timer->Get();
 		compressor->Stop();
+		for(float i = 0.0; i < power; i += 0.1) {
+			launcherOne->Set(i);
+			launcherTwo->Set(i);
+			Wait(0.01);
+		}
 		launcherOne->Set(power);
 		launcherTwo->Set(power);
 		while((encoderShoot->GetDistance() < position) && (timer->Get() - startTime < MAX_QUICKSHOT_TIME))
