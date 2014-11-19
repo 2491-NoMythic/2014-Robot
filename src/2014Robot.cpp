@@ -134,6 +134,34 @@ public:
 		driverStationLCD = DriverStationLCD::GetInstance();
 		driverStation = DriverStation::GetInstance();
 	}
+	void twoBallAutonomous()
+	{
+		//Drive foreward
+		motorRight->Set(-1.0);
+		motorLeft->Set(1.0);
+
+		//If driver station switch is on, wait until we've driven 12 feet
+		encoderLeft->Reset();
+		if(driverStation->GetDigitalIn(2)) {
+			while(IsAutonomous() && encoderLeft->GetDistance() < 12) {
+				Wait(0.01)
+			}
+		}
+		lifterDown->Set(false);
+		shiftUp->Set(false);
+		motorRight(0.0);
+		motorLeft(0.0);
+
+		//If autonomous shooting is enabled...
+		if(driverStation->GetDigitalIn(1)) {
+			//Wait a bit...
+			Wait(1.0);
+			//Shoot! The shoot time is based on DS analog input 3
+			positionShot(driverStation->GetAnalogIn(1), driverStation->GetAnalogIn(3));
+		}
+
+		motorRight->Set(1.0)
+	}
 	void Autonomous(void) {
 		if (driverStation->GetDigitalIn(7)) { //Only run autonomous if full control is on
 			encoderRight->Reset();
@@ -200,7 +228,7 @@ public:
 		bool useAutoShift = driverStation->GetDigitalIn(3);
 		bool fullControl = driverStation->GetDigitalIn(7);
 		bool retractShooter = false;
-		double previousPos = -2;
+		float previousPos = -2.0;
 
 		while (IsOperatorControl()) {  //We only want this to run while in teleop mode!
 			// Make the robot drive!
