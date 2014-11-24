@@ -159,8 +159,30 @@ public:
 			//Shoot! The shoot time is based on DS analog input 3
 			positionShot(driverStation->GetAnalogIn(1), driverStation->GetAnalogIn(3));
 		}
-
-		motorRight->Set(1.0)
+		
+		lifterDown->Set(true);
+		shiftUp->Set(true);
+		motorRight->Set(1.0);
+		motorLeft->Set(-1.0);
+		
+		encoderLeft->Reset();
+		if(driverStation->GetDigitalIn(2)) {
+			while(IsAutonomous() && encoderLeft->GetDistance < 11.5)
+			loaderOne->Set(loaderSpeed);
+			loaderTwo->Set(-1.0 * loaderSpeed);
+			Wait(0.5);
+			loaderOne->Set(0.0);
+		        loaderTwo->Set(0.0);
+		if(driverStation->GetDigitalIn(2)) {
+			while(IsAutonomous() && encoderLeft->GetDistance() < 11.5) {
+				Wait(0.01)
+			}
+		}
+		lifterDown->Set(false);
+		shiftUp->Set(false);
+		motorRight(0.0);
+		motorLeft(0.0);
+		}
 	}
 	void Autonomous(void) {
 		if (driverStation->GetDigitalIn(7)) { //Only run autonomous if full control is on
