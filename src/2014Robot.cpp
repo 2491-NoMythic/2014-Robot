@@ -206,8 +206,9 @@ public:
 			
 			//If driverstation switch is on, wait until we've driven 12 feet
 			encoderLeft->Reset();
+			Wait(0.1);
 			if(driverStation->GetDigitalIn(2)){
-				while(IsAutonomous() && encoderLeft->GetDistance() < 12) {
+				while(IsAutonomous() && encoderLeft->GetDistance() < 12.0) {
 					Wait(0.02);
 				}
 			}
@@ -221,10 +222,27 @@ public:
 			
 			//If autonomous shooting is enabled...
 			if(driverStation->GetDigitalIn(1)) {
+				//Make sure the launcher is bottomed out
+				launcherOne->Set(-0.2);
+				launcherTwo->Set(-0.2);
+				Wait(0.5);
+				encoderShoot->Reset();
+				launcherOne->Set(0.0);
+				launcherTwo->Set(0.0);
 				//Wait a bit...
-				Wait(2.0);
+				Wait(1.5);
 				//Shoot!  The shoot time is based on DS analog input 3.
-				positionShot(driverStation->GetAnalogIn(1), driverStation->GetAnalogIn(3));
+				float position = driverStation->GetAnalogIn(1) * 100;
+				if (position > 180) {
+					position = 180;
+				}
+				positionShot(position, driverStation->GetAnalogIn(3));
+				while (encoderShoot->GetDistance() > 10.0 && IsAutonomous()) {
+					launcherOne->Set(-0.25);
+					launcherTwo->Set(-0.25);
+				}
+				launcherOne->Set(0.0);
+				launcherTwo->Set(0.0);
 			}
 			
 			//Restart the compressor
@@ -249,8 +267,8 @@ public:
 		float transmissionCutoff = driverStation->GetAnalogIn(4) + 1.0;
 		bool useAutoShift = driverStation->GetDigitalIn(3);
 		bool fullControl = driverStation->GetDigitalIn(7);
-		bool retractShooter = false;
-		float previousPos = -2.0;
+		bool retractShooter = true;
+		int retractCounter = 0;
 
 		while (IsOperatorControl()) {  //We only want this to run while in teleop mode!
 			// Make the robot drive!
@@ -288,6 +306,7 @@ public:
 			//Launcher control
 			if(joystickLeft->GetRawAxis(6) < 0 && encoderShoot->GetDistance() < MAX_SHOOTER_DISTANCE) { //If you're pushing 6 and not 7 on the left joystick then launch the launcher!
 				printf("Launching!\n"); //Print out the fact that it's happening to the netconsole.
+				retractCounter = 0;
 				if (fullControl) { //full speed if full control is on
 					launcherOne->Set(1.0);
 					launcherTwo->Set(1.0);
@@ -299,6 +318,7 @@ public:
 			}
 			else if(joystickLeft->GetRawAxis(6) > 0) {
 				printf("Bringing launcher back.\n"); //Print out the fact that it's happening to the netconsole.
+				retractCounter = 0;
 				if(driverStation->GetDigitalIn(8)) {
 					launcherOne->Set(-1.0);
 					launcherTwo->Set(-1.0);
@@ -309,14 +329,16 @@ public:
 				}
 			}
 			else if (joystickLeft->GetRawButton(6) && encoderShoot->GetDistance() < MAX_SHOOTER_DISTANCE) {
+				retractCounter = 0;
 				launcherOne->Set(0.5);
 				launcherTwo->Set(0.5);
 			}
 			else if (joystickLeft->GetRawButton(5) && encoderShoot->GetDistance() < MAX_SHOOTER_DISTANCE) {
+				retractCounter = 0;
 				launcherOne->Set(0.3);
 				launcherTwo->Set(0.3);
 			}
-			else {
+			else if (retractCounter == 0) {
 				launcherOne->Set(0.0);
 				launcherTwo->Set(0.0);
 			}
@@ -356,21 +378,23 @@ public:
 				retractShooter = true;
 			}
 
-			if(retractShooter)
+			if(retractShooter || retractCounter > 0)
 			{
-
-				if(previousPos == encoderShoot->GetDistance()) {
+				retractCounter++;
+				retractShooter = false;
+				if (retractCounter < 20) {
+					launcherOne->Set(-0.25);
+					launcherTwo->Set(-0.25);
+				}
+				else if(encoderShoot->GetRate() != 0) {
+					//Do Nothing
+				}
+				else {
+					retractCounter = 0;
 					launcherOne->Set(0.0);
 					launcherTwo->Set(0.0);
 					encoderShoot->Reset();
-					retractShooter = false;
 				}
-				else {
-				launcherOne->Set(-0.25);
-				launcherOne->Set(-0.25);
-				}
-
-				previousPos = encoderShoot->GetDistance();
 			}
 				
 				
