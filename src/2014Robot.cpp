@@ -142,47 +142,50 @@ public:
 
 		//If driver station switch is on, wait until we've driven 12 feet
 		encoderLeft->Reset();
-		if(driverStation->GetDigitalIn(2)) {
-			while(IsAutonomous() && encoderLeft->GetDistance() < 12) {
-				Wait(0.01)
-			}
+		while(IsAutonomous() && encoderLeft->GetDistance() < 12) {
+			Wait(0.01);
 		}
-		lifterDown->Set(false);
-		shiftUp->Set(false);
-		motorRight(0.0);
-		motorLeft(0.0);
+
+		motorRight->Set(0.0);
+		motorLeft->Set(0.0);
 
 		//If autonomous shooting is enabled...
-		if(driverStation->GetDigitalIn(1)) {
-			//Wait a bit...
-			Wait(1.0);
-			//Shoot! The shoot time is based on DS analog input 3
-			positionShot(driverStation->GetAnalogIn(1), driverStation->GetAnalogIn(3));
-		}
-		
-		lifterDown->Set(true);
-		shiftUp->Set(true);
+		//Wait a bit...
+		Wait(1.0);
+		//Shoot! The shoot time is based on DS analog input 3
+		positionShot(driverStation->GetAnalogIn(1), driverStation->GetAnalogIn(3));
+
 		motorRight->Set(1.0);
 		motorLeft->Set(-1.0);
 		
-		encoderLeft->Reset();
-		if(driverStation->GetDigitalIn(2)) {
-			while(IsAutonomous() && encoderLeft->GetDistance < 11.5)
-			loaderOne->Set(loaderSpeed);
-			loaderTwo->Set(-1.0 * loaderSpeed);
-			Wait(0.5);
-			loaderOne->Set(0.0);
-		        loaderTwo->Set(0.0);
-		if(driverStation->GetDigitalIn(2)) {
-			while(IsAutonomous() && encoderLeft->GetDistance() < 11.5) {
-				Wait(0.01)
-			}
+		while(IsAutonomous() && encoderLeft->GetDistance() > 1) {
+			Wait(0.01);
 		}
-		lifterDown->Set(false);
-		shiftUp->Set(false);
-		motorRight(0.0);
-		motorLeft(0.0);
+
+		motorRight->Set(0.5);
+		motorLeft->Set(-0.5);
+
+		loaderOne->Set(loaderSpeed);
+		loaderTwo->Set(-1.0 * loaderSpeed);
+		Wait(0.5);
+		loaderOne->Set(0.0);
+	    loaderTwo->Set(0.0);
+
+	    motorRight->Set(0.0);
+		motorLeft->Set(0.0);
+
+		Wait(0.5);
+
+		motorRight->Set(-1.0);
+		motorLeft->Set(1.0);
+
+		while(IsAutonomous() && encoderLeft->GetDistance() < 12) {
+			Wait(0.01);
 		}
+		
+		motorRight->Set(0.0);
+		motorLeft->Set(0.0);
+		positionShot(driverStation->GetAnalogIn(1), driverStation->GetAnalogIn(3));
 	}
 	void Autonomous(void) {
 		if (driverStation->GetDigitalIn(7)) { //Only run autonomous if full control is on
