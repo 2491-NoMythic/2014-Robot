@@ -87,6 +87,7 @@ class MainRobot : public SimpleRobot
 	Timer *timer;
 	DriverStationLCD *driverStationLCD;
 	DriverStation *driverStation;
+	SmartDashboard *smartDashboard;
 
 public:
 	MainRobot(void)	{
@@ -130,12 +131,15 @@ public:
 		timer = new Timer();
 		timer->Start();
 		timer->Reset();
+
+		smartDashboard = new SmartDashboard();
 		
 		driverStationLCD = DriverStationLCD::GetInstance();
 		driverStation = DriverStation::GetInstance();
 	}
 	void twoBallAutonomous()
 	{
+		float loaderSpeed = joystickRight->GetZ()/2+0.5;
 		//Drive foreward
 		motorRight->Set(-1.0);
 		motorLeft->Set(1.0);
@@ -309,6 +313,7 @@ public:
 			//Launcher control
 			if(joystickLeft->GetRawAxis(6) < 0 && encoderShoot->GetDistance() < MAX_SHOOTER_DISTANCE) { //If you're pushing 6 and not 7 on the left joystick then launch the launcher!
 				printf("Launching!\n"); //Print out the fact that it's happening to the netconsole.
+				smartDashboard->PutString("Launch Status:", "Lanching!\n");
 				retractCounter = 0;
 				if (fullControl) { //full speed if full control is on
 					launcherOne->Set(1.0);
@@ -321,6 +326,7 @@ public:
 			}
 			else if(joystickLeft->GetRawAxis(6) > 0) {
 				printf("Bringing launcher back.\n"); //Print out the fact that it's happening to the netconsole.
+				smartDashboard->PutString("Launcher Status:", "Bringing launcher back.\n")
 				retractCounter = 0;
 				if(driverStation->GetDigitalIn(8)) {
 					launcherOne->Set(-1.0);
@@ -509,7 +515,7 @@ public:
 			//Update the loader speed variable
 			loaderSpeed = joystickRight->GetRawAxis(4)/2+0.5;
 			//Print the loader speed to line 1
-			driverStationLCD->Printf(DriverStationLCD::kUser_Line1, 1, "Loader Speed: %f\%", loaderSpeed);
+			driverStationLCD->Printf(DriverStationLCD::kUser_Line1, 1, "Loader Speed: %f", loaderSpeed);
 			//Print the shooter potentiometer voltage to line 3 of the DS LCD
 			driverStationLCD->Printf(DriverStationLCD::kUser_Line3, 1, "Shooter Speed: %f", encoderShoot->GetRate());
 			
